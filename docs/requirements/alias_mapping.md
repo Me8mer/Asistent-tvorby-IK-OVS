@@ -3,12 +3,8 @@
 
 ## **IKOVS_PREFACE
 
-| Alias | Název části šablony | Popis |
-|--------|----------------------|--------|
-| | |
-| **IKOVS_PREFACE_BASIC-INFO** | Základní údaje Informační koncepce | Identifikační údaje úřadu – název, sídlo, IČO, typ úřadu, identifikátory ISVS/eSSS. |
-| **IKOVS_PREFACE_PURPOSE** | Poslání a kompetence úřadu | Popis smyslu, účelu a hlavních cílů úřadu. |
-| **IKOVS_PREFACE_MANAGEMENT-SUMMARY** | Manažerské shrnutí | Stručný přehled cílového stavu, přínosů a klíčových projektů. |
+| alias | type | mapped_reqs | depends_on | notes |
+|-------|------|--------------|-------------|-------|
 
 ---
 ## 9️⃣ Podrobné mapování sekcí
