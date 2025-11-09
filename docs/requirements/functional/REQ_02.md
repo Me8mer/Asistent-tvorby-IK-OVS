@@ -4,23 +4,13 @@
 **Typ:** funkční / datový  
 **Stav:** koncept  
 **Jistota:** střední  
-**Priorita:** střední 
+**Priorita:** vysok8 
 
 ## Požadavek
-Asistent využívá umělou inteligenci k doplnění polí v tabulkách šablony IK OVS,  
-která zůstala po deterministickém doplnění (`REQ_01`) prázdná, neúplná nebo označená jako **nejistá**.  
-
-AI doplnění se opírá o dostupné veřejné informace a textové zdroje  
-(např. **WEB_OFFICE**, **IKCR**, **ARCHI_PORTAL**) a snaží se odvodit nebo doplnit hodnoty,  
-které lze z těchto kontextů věrohodně získat.  
-
-Každé pole doplněné pomocí AI musí být označeno jako **„AI návrh“**,  
-včetně uvedení zdroje, úrovně jistoty a způsobu odvození (např. *z textu webu úřadu* nebo *z dokumentu IK ČR*).
+Asistent po dokončení deterministického doplnění (REQ_01) identifikuje všechna pole označená jako empty nebo needs_validation a vygeneruje pro ně návrhy pomocí AI. Každý návrh musí být zapsán jako samostatný záznam typu ai_proposal obsahující navrženou hodnotu, seznam použitých zdrojů, metodu odvození, numerickou úroveň jistoty a čas vytvoření. Návrhy se neukládají automaticky jako potvrzené hodnoty; zůstávají v modelu ve stavu ai_proposal až do uživatelské akce.
 
 ## Odůvodnění
-Po deterministickém vyplnění zůstává část polí v tabulkách neúplná nebo bez zdroje.  
-AI doplnění umožní předvyplnit tato pole automaticky,  
-čímž snižuje rozsah ruční práce.
+Deterministické zdroje nezajistí plné pokrytí. AI návrhy sníží množství manuální práce a přitom ponechají člověka v roli konečného rozhodovatele. Zároveň musí být zajištěna dohledatelnost a možnost auditovat zdroje a postupy, které návrhy vytvořily.
 
 ## Předpoklady
 - Výsledky z `REQ_01` (deterministická data) jsou dostupné a označené.  
@@ -29,7 +19,7 @@ AI doplnění umožní předvyplnit tato pole automaticky,
   - pracovat s přirozeným jazykem (NLP, extrakce faktů),  
   - vyhodnotit míru jistoty doplněné hodnoty,  
   - zaznamenat zdroj a metodu odvození.  
-- Uživatel má možnost návrhy potvrdit nebo upravit.
+- UI poskytuje ovládací prvky pro zobrazení, přijetí, odmítnutí a regeneraci návrhu.
 
 ## Následný stav
 Po splnění požadavku bude asistent schopen:
@@ -48,20 +38,17 @@ Po splnění požadavku bude asistent schopen:
 ## Vstupy
 - Výstupy z `REQ_01` (deterministická data, označená nejistá pole)  
 - Veřejné zdroje (`WEB_OFFICE`, `IKCR`, `ARCHI_PORTAL`)  
-- Metadata o generování (datum, verze)
-- Vstupní identifikátor úradu 
+- Kontext sekce a šablony (aliasy polí)
 
 ## Výstupy
-- Vyplněná tabulková pole 
+- Seznam ai_proposal záznamů v interním modelu.
 - Záznam zdroje a úrovně jistoty  
 - Strukturovaný JSON/YAML export se stavovým značením  
 - Auditní log s přehledem potvrzených a odmítnutých návrhů
 
 ## Závislosti 
-- `REQ_01` – deterministické doplnění faktických dat  
-- `REQ_03` – AI generování textových a kontextových polí  
+- `REQ_01` – deterministické doplnění faktických dat   
+- UI komponenty pro review a rozhodování.
 
 ## Poznámky
 - Tento požadavek řeší **AI inference** – odvozování hodnot z dostupných textových zdrojů.  
-- Nevztahuje se na čistě textové části dokumentu (poznámky, shrnutí, komentáře), které jsou popsány v `XXX`.  
-- Každý návrh musí být trasovatelný k původnímu zdroji a doplněn o časové metadata.

@@ -7,25 +7,17 @@
 **Priorita:** vysoká
 
 ## Požadavek
-Asistent automaticky vytváří nebo předvyplňuje specifická pole v tabulkách šablony IK OVS,  
-pokud jejich hodnoty lze jednoznačně určit z veřejných či oficiálních datových zdrojů.  
-
-Deterministická data zahrnují zejména identifikační, organizační a evidenční údaje úřadu  
-(např. název, IČO, sídlo, identifikátor ISVS/eSSS, agendu, kontaktní údaje).  
-
-Vyplnění probíhá bez zásahu uživatele. Každý doplněný údaj obsahuje informaci o **zdroji** a **datumu načtení**.  
-Pokud nelze hodnotu spolehlivě určit nebo se zdroje liší, pole je označeno jako **nejisté**  
-a předáno k následné validaci.
+Asistent v rámci fáze Inicializace → Deterministické předvyplnění automaticky načte a zapíše faktická pole šablony IK OVS, která jsou označena jako deterministic_fill. Vyplnění proběhne pouze pokud lze hodnotu jednoznačně určit z důvěryhodných veřejných registrů. Každé uložené pole musí nést kompletní provenance metadata a stav pole v interním modelu. Pokud zdroje poskytují konfliktní nebo neúplné údaje, pole se nevyplní a nastaví se stav needs_validation pro následné kroky.
 
 ## Odůvodnění
 Základní identifikační údaje úřadu jsou dostupné z oficiálních registrů.
 Tato část dokumentu je čistě faktická a nevyžaduje AI-generované texty. Cílem je zajistit **přesnost, ověřitelnost a trasovatelnost** dat.
 
 ## Předpoklady
+* K dispozici je vstupní identifikátor úřadu (např. IČO nebo jiný unikátní identifikátor).
 - Asistent má přístup k zdrojúm **RPP**, **WEB_OFFICE**, ***ARCHI_PORTAL**
 - Propojení s registry probíhá prostřednictvím dostupných veřejných API, otevřených dat nebo data setů.<!-- Nejistota. Zjisti...-->
-- Úřad je identifikován pomocí IČO nnebo jiného unikátního identifikátoru. <!-- Nejistota. Zjisti...-->
-- pole na vyplnení jsou specificky označená pro doplnění
+- Pole na vyplnení jsou specificky označená pro doplnění
 
 ## Následný stav
 Po splnění požadavku se asistent pokusí:
@@ -45,16 +37,16 @@ Po splnění požadavku se asistent pokusí:
 ## Vstupy <!-- Find out -->
 - IČO úřadu (vstupní identifikátor)
 - Veřejné zdroje
-- Metadata o generování (datum, verze)
+- Verzovaná DOCX šablona s SDT tagy
 
 ## Výstupy
-- Vyplněné deterministické tabulky šablony IK OVS  
+- aAktualizovaný interní stav 
 - Strukturovaný JSON/YAML obsahující vyplněné hodnoty a jejich zdroje
 - Auditní log s konfliktními nebo nejistými poli
 
 ## Závislosti 
-- `REQ_02` – AI doplňování textových a kontextových polí  
-- `REQ_03` – Validace konzistence a úplnosti dat  
+- Parsování SDT a vytvoření interního modelu (Inicializace).
+- `REQ_02` – (AI doplnění) pracuje pouze s poli, která zůstala empty 
 - Přístupové moduly k veřejným datovým zdrojům <!-- Find out -->
 
 ## Poznámky

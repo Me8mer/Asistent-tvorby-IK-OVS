@@ -7,9 +7,9 @@
 **Priorita:** vysoká
 
 ## Požadavek
-Asistent vytvoří návrhy textů pro předem definované textové sekce šablony IK OVS (např. `IKOVS_PREFACE_MANDATE_TEXT-BLOCK`), a to na základě veřejně dostupných zdrojů (legislativa, metodiky, oficiální web úřadu, IKČR apod.).  
+Asistent v rámci fáze AI fill generuje návrhy textů pro předdefinované textové sekce šablony IK OVS (např. `IKOVS_PREFACE_MANDATE_TEXT-BLOCK`) na základě ověřených veřejných zdrojů. Pro každý vygenerovaný blok se uloží záznam typu ai_proposal obsahující text, seznam použitých zdrojů, metodu odvození, číslicovou úroveň jistoty a čas vytvoření. Návrhy zůstávají v modelu jako AI návrh dokud je uživatel nepotvrdí nebo neupraví.
 
-Výstupem jsou formální, linguisticky konzistentní texty, které odpovídají stylu a struktuře příkladů IK. Každý návrh je vždy označen jako **„AI návrh“**, obsahuje uvedení použitých zdrojů a indikaci úrovně jistoty. Návrhy vyžadují uživatelské potvrzení před tím, než se stanou součástí finálního dokumentu.
+Generování musí podporovat větnou nebo segmentovou provenienci, aby šlo přesně dohledat, které zdroje podporují která tvrzení v rámci navrženého textu.
 
 ## Odůvodnění
 Mnohé textové sekce lze připravit automaticky z dostupných veřejných zdrojů, přestože zdrojová informace nemusí být ve strukturované podobě. AI usnadní tvorbu konzistentních, formálně správných návrhů, které sníží manuální práci a zrychlí tvorbu IK OVS. Vždy je nutné zachovat kontrolu uživatele nad finálním zněním.
@@ -26,15 +26,14 @@ Mnohé textové sekce lze připravit automaticky z dostupných veřejných zdroj
 Po provedení budou k dispozici:
 - návrhy textů pro cílové sekce se stavem `AI návrh`,  
 - u každého návrhu metadata: `sources[]`, `generated_at`, `confidence`... 
-- možnost uživatelského potvrzení, úpravy nebo zamítnutí. Potvrzení se zapisuje do auditního logu,  
-- export (Word/JSON/YAML) zachovávající označení stavu a zdroje.
+- možnost uživatelského potvrzení, úpravy nebo zamítnutí.  
+- možnost exportu (Word/JSON/YAML) zachovávající označení stavu a zdroje.
 
 ## Akceptační kritéria
-- Pro zadanou sekci systém vygeneruje text v odpovídající formálnímu stylu příkladů IK.  
+- Pro každou cílovou sekci systém vygeneruje text označený AI návrh s metadaty a confidence_score  
 - U každého návrhu jsou uvedeny použité zdroje.
 - Každý návrh nese hodnotu `confidence` a štítek `AI návrh`.  
-- Uživatel může návrh upravit, potvrdit nebo zamítnout. Potvrzení se zanesou do auditního záznamu.  
-- Export do Word/JSON/YAML zřetelně rozlišuje mezi `AI návrh` a `confirmed` texty.  
+- Uživatel může návrh regenerovat, potvrdit nebo zamítnout. Potvrzení se zanesou do auditního záznamu.  
 - Generované texty odpovídají struktuře příkladů (použité vzory/příklady) a splňují formální náležitosti (odkazy na legislativu, citace tam, kde je to relevantní).
 
 ## Vstupy
@@ -48,7 +47,10 @@ Po provedení budou k dispozici:
 - JSON/YAML export s rozlišením stavu a odkazem na zdroje  
 - Auditní záznam změn a potvrzení
 
+
 ## Závislosti
+- REQ_06 pro následnou validaci a kontrolu legislativních požadavků.
+- UI komponenty pro zobrazení sentence-level provenance a editaci.
 
 ## Poznámky
 - Texty musí být formální a držet se stylu poskytnutých příkladů IK; implementace by měla umožnit dodání sady vzorů pro ladění stylu.  
