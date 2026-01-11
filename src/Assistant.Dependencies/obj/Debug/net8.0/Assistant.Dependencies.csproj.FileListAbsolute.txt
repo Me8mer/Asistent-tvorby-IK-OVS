@@ -1,0 +1,12 @@
+/home/peter/BC/src/Assistant.Dependencies/bin/Debug/net8.0/Assistant.Dependencies.deps.json
+/home/peter/BC/src/Assistant.Dependencies/bin/Debug/net8.0/Assistant.Dependencies.dll
+/home/peter/BC/src/Assistant.Dependencies/bin/Debug/net8.0/Assistant.Dependencies.pdb
+/home/peter/BC/src/Assistant.Dependencies/obj/Debug/net8.0/Assistant.Dependencies.GeneratedMSBuildEditorConfig.editorconfig
+/home/peter/BC/src/Assistant.Dependencies/obj/Debug/net8.0/Assistant.Dependencies.AssemblyInfoInputs.cache
+/home/peter/BC/src/Assistant.Dependencies/obj/Debug/net8.0/Assistant.Dependencies.AssemblyInfo.cs
+/home/peter/BC/src/Assistant.Dependencies/obj/Debug/net8.0/Assistant.Dependencies.csproj.CoreCompileInputs.cache
+/home/peter/BC/src/Assistant.Dependencies/obj/Debug/net8.0/Assistant.Dependencies.sourcelink.json
+/home/peter/BC/src/Assistant.Dependencies/obj/Debug/net8.0/Assistant.Dependencies.dll
+/home/peter/BC/src/Assistant.Dependencies/obj/Debug/net8.0/refint/Assistant.Dependencies.dll
+/home/peter/BC/src/Assistant.Dependencies/obj/Debug/net8.0/Assistant.Dependencies.pdb
+/home/peter/BC/src/Assistant.Dependencies/obj/Debug/net8.0/ref/Assistant.Dependencies.dll

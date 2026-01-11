@@ -1,0 +1,12 @@
+/home/peter/BC/src/Assistant.Core/bin/Debug/net8.0/Assistant.Core.deps.json
+/home/peter/BC/src/Assistant.Core/bin/Debug/net8.0/Assistant.Core.dll
+/home/peter/BC/src/Assistant.Core/bin/Debug/net8.0/Assistant.Core.pdb
+/home/peter/BC/src/Assistant.Core/obj/Debug/net8.0/Assistant.Core.GeneratedMSBuildEditorConfig.editorconfig
+/home/peter/BC/src/Assistant.Core/obj/Debug/net8.0/Assistant.Core.AssemblyInfoInputs.cache
+/home/peter/BC/src/Assistant.Core/obj/Debug/net8.0/Assistant.Core.AssemblyInfo.cs
+/home/peter/BC/src/Assistant.Core/obj/Debug/net8.0/Assistant.Core.csproj.CoreCompileInputs.cache
+/home/peter/BC/src/Assistant.Core/obj/Debug/net8.0/Assistant.Core.sourcelink.json
+/home/peter/BC/src/Assistant.Core/obj/Debug/net8.0/Assistant.Core.dll
+/home/peter/BC/src/Assistant.Core/obj/Debug/net8.0/refint/Assistant.Core.dll
+/home/peter/BC/src/Assistant.Core/obj/Debug/net8.0/Assistant.Core.pdb
+/home/peter/BC/src/Assistant.Core/obj/Debug/net8.0/ref/Assistant.Core.dll

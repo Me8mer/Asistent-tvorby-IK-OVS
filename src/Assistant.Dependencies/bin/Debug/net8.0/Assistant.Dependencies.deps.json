@@ -1,0 +1,23 @@
+{
+  "runtimeTarget": {
+    "name": ".NETCoreApp,Version=v8.0",
+    "signature": ""
+  },
+  "compilationOptions": {},
+  "targets": {
+    ".NETCoreApp,Version=v8.0": {
+      "Assistant.Dependencies/1.0.0": {
+        "runtime": {
+          "Assistant.Dependencies.dll": {}
+        }
+      }
+    }
+  },
+  "libraries": {
+    "Assistant.Dependencies/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    }
+  }
+}

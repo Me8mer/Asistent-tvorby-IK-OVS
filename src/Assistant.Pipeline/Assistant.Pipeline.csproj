@@ -1,0 +1,15 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\Assistant.Core\Assistant.Core.csproj" />
+    <ProjectReference Include="..\Assistant.Parser.OpenXml\Assistant.Parser.OpenXml.csproj" />
+    <ProjectReference Include="..\Assistant.Fill\Assistant.Fill.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+</Project>
