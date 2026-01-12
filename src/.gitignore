@@ -1,0 +1,77 @@
+# =========================
+# .NET / Visual Studio / Rider / VS Code
+# =========================
+
+# Build outputs
+**/bin/
+**/obj/
+**/out/
+**/artifacts/
+**/TestResults/
+
+# User-specific / machine-specific
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+*.rsuser
+*.DotSettings.user
+
+# Visual Studio
+.vs/
+.vscode/
+*.code-workspace
+
+# Rider / JetBrains
+.idea/
+*.sln.iml
+
+# Resharper
+_ReSharper*/
+*.[Rr]e[Ss]harper
+*.DotSettings
+
+# NuGet
+**/packages/
+*.nupkg
+*.snupkg
+# If you use a local packages folder:
+# .nuget/packages/
+
+# .NET tooling caches
+.vsconfig
+.nuget/NuGet.Config.user
+**/.config/dotnet-tools.json.user
+**/.dotnet/
+
+# Publish / deployment
+**/publish/
+**/app.publish/
+**/*.Publish.xml
+**/*.pubxml
+**/*.pubxml.user
+
+# Logs
+**/*.log
+
+# OS / misc
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# =========================
+# Test coverage
+# =========================
+**/coverage/
+**/coverage-results/
+**/coverage.*.xml
+**/coverage.xml
+**/*.coverage
+**/*.coveragexml
+
+# =========================
+# Avalonia (common)
+# =========================
+**/.avalonia/
+**/*.pdb
