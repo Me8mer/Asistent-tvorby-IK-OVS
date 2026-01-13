@@ -7,8 +7,8 @@ namespace Assistant.Core.Model
         NeedsValidation = 2,
         AiProposal = 3,
         AiInteractive = 4,
-        //Confirmed = 5,
-        //Rejected = 6,
-        //UserInput = 7
+        Confirmed = 5,
+        Rejected = 6,
+        UserInput = 7
     }
 }

@@ -44,5 +44,37 @@ namespace Assistant.Pipeline.Initiation
             MergeDecision decision = internalModel.ApplyProposal(proposal);
             return decision;
         }
+
+        public async Task GenerateSectionAsync(
+            InternalModel internalModel,
+            IReadOnlyList<FieldAlias> sectionAliases,
+            string sectionContextText,
+            CancellationToken cancellationToken)
+        {
+            if (internalModel is null)
+                throw new ArgumentNullException(nameof(internalModel));
+
+            if (sectionAliases is null)
+                throw new ArgumentNullException(nameof(sectionAliases));
+
+            foreach (FieldAlias alias in sectionAliases)
+            {
+                FieldNode fieldNode = internalModel.GetField(alias);
+
+                GenerationRequest request = GenerationRequest.Create(
+                    mode: GenerationMode.InitialPrefill,
+                    alias: alias,
+                    descriptor: fieldNode.Descriptor,
+                    currentValue: fieldNode.CurrentValue,
+                    existingProposals: fieldNode.ProposalHistory,
+                    documentContextText: sectionContextText,
+                    contextReferences: new[] { "section:preface-basic-info" });
+
+                Proposal proposal =
+                    await proposalGenerator.GenerateAsync(request, cancellationToken);
+
+                internalModel.ApplyProposal(proposal);
+            }
+        }
     }
 }

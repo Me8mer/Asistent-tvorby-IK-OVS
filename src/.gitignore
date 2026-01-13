@@ -9,6 +9,8 @@
 **/artifacts/
 **/TestResults/
 
+**/tmp/
+
 # User-specific / machine-specific
 *.user
 *.suo

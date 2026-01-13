@@ -10,6 +10,8 @@ namespace Assistant.Core.Model
         public string? DisplayName { get; }
         public string? Instructions { get; }
         public string? ValueTypeHint { get; }
+        public ContextRequirement? ContextRequirement { get; }
+
 
         public FieldDescriptor(
             FieldAlias alias,
@@ -17,7 +19,8 @@ namespace Assistant.Core.Model
             bool isRequired,
             string? displayName,
             string? instructions,
-            string? valueTypeHint)
+            string? valueTypeHint,
+            ContextRequirement? contextRequirement)
         {
             Alias = alias;
             FillModes = fillModes;
@@ -25,6 +28,7 @@ namespace Assistant.Core.Model
             DisplayName = displayName;
             Instructions = instructions;
             ValueTypeHint = valueTypeHint;
+            ContextRequirement = contextRequirement;
         }
     }
 }

@@ -2,6 +2,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Assistant.Pipeline\Assistant.Pipeline.csproj" />
+    <ProjectReference Include="..\Assistant.Core\Assistant.Core.csproj" />
   </ItemGroup>
 
   <ItemGroup>
