@@ -6,10 +6,15 @@ Popisuje **význam** části dokumentu, nikoli její aktuální umístění nebo
 
 ---
 
+## Struktura aliasu
 ```
-IKOVS_<BLOCK><SECTION>[<SUBSECTION>[_<ELEMENT>]]
+IKOVS_<BLOCK>_<SECTION>[_<SUBSECTION>][_<ELEMENT>]
 ```
 
+- `<BLOCK>` – hlavní část dokumentu  
+- `<SECTION>` – konkrétní sekce v rámci bloku  
+- `<SUBSECTION>` – tabulka, seznam, textový blok nebo jiný podprvek sekce (volitelné)  
+- `<ELEMENT>` – konkrétní pole, buňka nebo prvek v rámci subsekce (volitelné)
 ---
 
 **Pravidla:**
@@ -20,11 +25,11 @@ IKOVS_<BLOCK><SECTION>[<SUBSECTION>[_<ELEMENT>]]
 
 ---
 
-## 2️⃣ Bloky dokumentu (`<BLOCK>`)
+## Bloky dokumentu (`<BLOCK>`)
 
 Každý blok odpovídá hlavní části šablony IK OVS, nikoli číslu kapitoly.
 
-| Segment | Význam |
+| Segment | Popis |
 |----------|--------|
 | `PREFACE` | Úvodní část – metadata, základní údaje, poslání |
 | `A` | Část A – Architektura úřadu |
@@ -34,21 +39,21 @@ Každý blok odpovídá hlavní části šablony IK OVS, nikoli číslu kapitoly
 
 ---
 
-## 3️⃣ Sekce (`<SECTION>`)
+## Sekce (`<SECTION>`)
 
 Názvy sekcí vycházejí z jejich **funkčního významu**, ne z aktuálního textu v šabloně.  
 Pojmenování musí být stabilní i při přejmenování nebo sloučení částí.
 
 ---
 
-## 4️⃣ Podsekce a prvky (`<SUBSECTION>`, `<ELEMENT>`)
+## Podsekce a prvky (`<SUBSECTION>`, `<ELEMENT>`)
 
 Pro detailní odkazy na konkrétní struktury v rámci sekce (např. tabulky, odstavce, seznamy) se přidává další úroveň.  
 Používej pouze tam, kde je to nezbytné pro mapování nebo automatizaci.
 
 ---
 
-## 6️⃣ Verzování a údržba
+## Verzování a údržba
 
 - Všechny aliasy jsou vedeny v tomto jediném souboru: **`template_aliases.md`**.  
 - Při změně struktury dokumentu se alias **nezmění**, pouze se může označit jako `deprecated`.  

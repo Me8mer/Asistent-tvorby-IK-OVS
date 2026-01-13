@@ -7,7 +7,7 @@
 **Priorita:** vysoká
 
 ## Požadavek
-Asistent v rámci fáze AI fill dokáže vygenerovat celou tabulku nebo její část v šabloně IK OVS (IKOVS_A_AI-GENERATED_TABLE) pro případy, kdy tabulka nemá plně deterministický zdroj dat nebo když je žádoucí navrhnout obsah podle předdefinovaného formátu a dostupného kontextu. Generování probíhá jen pro aliasy označené jako vhodné pro AI generování a nesmí přepsat existující hodnoty ve stavu confirmed nebo deterministic bez explicitního uživatelského souhlasu.
+Asistent v rámci fáze AI fill dokáže vygenerovat celou tabulku nebo její část v šabloně IK OVS (`IKOVS_A_AI-GENERATED_TABLE`) pro případy, kdy tabulka nemá plně deterministický zdroj dat nebo když je žádoucí navrhnout obsah podle předdefinovaného formátu a dostupného kontextu. Generování probíhá jen pro aliasy označené jako vhodné pro AI generování a nesmí přepsat existující hodnoty ve stavu confirmed nebo deterministic bez explicitního uživatelského souhlasu.
 
 Generovaná tabulka musí obsahovat strukturované sloupce definované šablonou a u každého řádku a každého pole uchovávat metadata o původu návrhu, metodě generování, verzi transformační šablony a číselnou úroveň jistoty.
 
@@ -29,7 +29,7 @@ Po provedení generování bude dostupná:
 - Export (Word/JSON/YAML) zachovává strukturu tabulky, stavy řádků a veškerou provenance.
 
 ## Akceptační kritéria
-- Systém vygeneruje tabulku podle definovaného formátu (sloupce a datové typy) pro zadanou instanci `IKOVS_A_AI-GENERATED_TABLE_<instance>`.   
+- Systém vygeneruje tabulku podle definovaného formátu (sloupce a datové typy) pro zadanou instanci `IKOVS_A_AI-GENERATED_TABLE`.   
 - U každé položky je uveden alespoň jeden zdroj a úroveň jistoty.  
 - Generované položky jsou označeny jako *AI návrh* a nejsou považovány za konečné dokud uživatel nepotvrdí jejich stav.  <!-- Not sure about this -->  
 - Exporty (Word/JSON/YAML) obsahují informaci o tom, které řádky jsou *AI-generated* a které *confirmed*, včetně referencí na zdroje a čas generování.  
@@ -42,7 +42,7 @@ Po provedení generování bude dostupná:
 - Parametry generování (např. požadovaná hloubka návrhu, maximální počet položek, threshold pro confidence)
 
 ## Výstupy
-- IKOVS_A_AI-GENERATED_TABLE_<instance> v interním modelu.
+- `IKOVS_A_AI-GENERATED_TABLE`<instance> v interním modelu.
 - dostupný JSON/YAML export tabulky se stavovými flagy a metadaty o zdrojích a úrovni jistoty  
 - Auditní log s historií generování, úprav a potvrzení
 

@@ -24,7 +24,7 @@ flowchart LR
 ```mermaid
 flowchart TD
   ui[Iterativní UI]
-  chapter[Výběr kapitoly]
+  chapter[Výběr části]
   section[Výběr sekce]
   chatbotChapter[Chatbot]
   aiSection[AI doplnění v sekci]
@@ -33,26 +33,33 @@ flowchart TD
   manualFill[Manuální doplnění]
   manualStructureFill[Manuální strukturové doplnění]
   sectionMerge[Sloučení sekce]
-  chapterExport[Strukturální export kapitoly]
-  chapterMerge[Sloučení kapitoly]
+  chapterExport[Strukturální export části]
+  chapterMerge[Sloučení části]
   finalExport[Celkový export dokumentu]
 
   ui --> chapter
   chapter --> section
   chapter --> chatbotChapter
   chatbotChapter --> section
-  section --> confirm
-  confirm --> aiSection
+  
+  %% práce v sekci
+  section --> aiSection
   aiSection --> confirm
-  confirm --> sectionExport
+  confirm --> section
+
+  section --> sectionExport
   sectionExport --> manualFill
   manualFill --> sectionMerge
-  sectionMerge --> confirm
+  sectionMerge --> section
+
   section --> chapterExport
   chapterExport --> manualStructureFill
   manualStructureFill --> chapterMerge
   chapterMerge --> chapter
+
   ui --> finalExport
+
+
 
 ```
 
@@ -62,7 +69,7 @@ flowchart TD
 
 * Asistent pracuje s verzovanou DOCX šablonou odpovídající formátu IK OVS.
 * Všechny vyplnitelé pozice v šabloně jsou označeny SDT (content controls).
-* Každé SDT nese stabilní interní tag podle alias mapy (např. `doc:IKOVS|chap:IKOVS_PREFACE|sub:BASIC-INFO|fld:INFO-TABLE`).
+* Každé SDT nese stabilní interní tag podle alias mapy (např. `IKOVS_PREFACE_BASIC-INFO_INFO-TABLE`).
 * Z těchto tagů se odvozují interní identifikátory polí, tabulek a sekcí (slouží jako primární klíče v interním modelu).
 * Vnější bloky (kapitoly, podkapitoly) jsou zamčené proti uživatelským strukturálním změnám; 
 * Před spuštěním proběhne validace: kontrola verze šablony proti alias mapě, přítomnost všech povinných tagů, nulová duplicita tagů.
@@ -210,3 +217,4 @@ flowchart TD
 * Výsledný dokument se složí spojením všech částí v pořadí daném šablonou.
 * Uživatel je upozorněn, že externí úpravy tohoto výstupu se nevracejí zpět do asistenta.
 * Opakovaný export je podporován
+

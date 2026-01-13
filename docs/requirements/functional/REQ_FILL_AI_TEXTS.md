@@ -15,7 +15,7 @@ Generování musí podporovat větnou nebo segmentovou provenienci, aby šlo př
 Mnohé textové sekce lze připravit automaticky z dostupných veřejných zdrojů, přestože zdrojová informace nemusí být ve strukturované podobě. AI usnadní tvorbu konzistentních, formálně správných návrhů, které sníží manuální práci a zrychlí tvorbu IK OVS. Vždy je nutné zachovat kontrolu uživatele nad finálním zněním.
 
 ## Předpoklady
-- Seznam a aliasy zdrojů jsou definovány v `sources.md` (např. `LAW_365_2000`, `DECREE_360_2023`, `IKCR`, `WEB_OFFICE`).  
+- Seznam a aliasy zdrojů jsou definovány v `sources.md` 
 - Jsou dostupné vzorové texty / příklady IK, které slouží jako stylistická referenční šablona.  
 - AI modul má schopnost:
   - extrahovat relevantní informace z textových dokumentů a webu,  
@@ -37,7 +37,7 @@ Po provedení budou k dispozici:
 - Generované texty odpovídají struktuře příkladů (použité vzory/příklady) a splňují formální náležitosti (odkazy na legislativu, citace tam, kde je to relevantní).
 
 ## Vstupy
-- Alias cílové sekce (např. `IKOVS_PREFACE_MANDATE_TEXT-BLOCK`)  
+- Alias cílové sekce (např. `IKOVS_PREFACE_MANDATE`)  
 - Zdrojové dokumenty / aliasy ze `sources.md`   
 - Stylová šablona / příklady IK pro referenci
 - Vstupní identifikátor úradu
