@@ -39,7 +39,14 @@ namespace Assistant.AI.Parsing
 
             double confidence = NormalizeConfidence(parsed.Confidence);
 
-            FieldStatus proposedStatus = DetermineProposedStatus(request, parsed.ProposedStatus);
+            FieldStatus proposedStatus = request.Mode switch
+            {
+                GenerationMode.InitialPrefill => FieldStatus.AiProposal,
+                GenerationMode.Regenerate => FieldStatus.AiProposal,
+                GenerationMode.Improve => FieldStatus.AiProposal,
+                _ => FieldStatus.AiProposal
+            };
+
 
             string source = BuildSource(routing, response);
 
@@ -132,55 +139,6 @@ namespace Assistant.AI.Parsing
             }
 
             return confidence.Value;
-        }
-
-        private FieldStatus DetermineProposedStatus(GenerationRequest request, string? modelProposedStatus)
-        {
-            if (allowModelProposedStatus && !string.IsNullOrWhiteSpace(modelProposedStatus))
-            {
-                if (TryMapProposedStatus(modelProposedStatus, out FieldStatus mappedStatus))
-                {
-                    return mappedStatus;
-                }
-            }
-
-            return request.Mode switch
-            {
-                GenerationMode.InitialPrefill => FieldStatus.AiProposal,
-                GenerationMode.Regenerate => FieldStatus.AiProposal,
-                GenerationMode.Improve => FieldStatus.AiProposal,
-                _ => FieldStatus.AiProposal
-            };
-        }
-
-        private static bool TryMapProposedStatus(string text, out FieldStatus proposedStatus)
-        {
-            if (text.Equals("AiProposal", StringComparison.OrdinalIgnoreCase))
-            {
-                proposedStatus = FieldStatus.AiProposal;
-                return true;
-            }
-
-            if (text.Equals("AiInteractive", StringComparison.OrdinalIgnoreCase))
-            {
-                proposedStatus = FieldStatus.AiInteractive;
-                return true;
-            }
-
-            if (text.Equals("NeedsValidation", StringComparison.OrdinalIgnoreCase))
-            {
-                proposedStatus = FieldStatus.NeedsValidation;
-                return true;
-            }
-
-            if (text.Equals("Deterministic", StringComparison.OrdinalIgnoreCase))
-            {
-                proposedStatus = FieldStatus.Deterministic;
-                return true;
-            }
-
-            proposedStatus = default;
-            return false;
         }
 
         private static string BuildSource(ModelRouting routing, LlmRawResponse response)

@@ -6,7 +6,8 @@
     "additionalProperties": false,
     "required": [
         "value",
-        "confidence"
+        "confidence",
+        "explanation"
     ],
     "properties": {
         "value": {
@@ -22,16 +23,6 @@
         "explanation": {
             "type": "string",
             "description": "Optional short justification of how the value was derived."
-        },
-        "proposedStatus": {
-            "type": "string",
-            "enum": [
-                "AiProposal",
-                "AiInteractive",
-                "NeedsValidation",
-                "Deterministic"
-            ],
-            "description": "Optional. If missing, the caller decides the status."
         }
     }
 }
