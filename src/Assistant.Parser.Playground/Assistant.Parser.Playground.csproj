@@ -3,6 +3,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Assistant.Parser.OpenXml\Assistant.Parser.OpenXml.csproj" />
     <ProjectReference Include="..\Assistant.Core\Assistant.Core.csproj" />
+    <ProjectReference Include="..\Assistant.Dependencies\Assistant.Dependencies.csproj" />
   </ItemGroup>
 
   <PropertyGroup>
