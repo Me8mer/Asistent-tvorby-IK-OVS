@@ -41,15 +41,26 @@ namespace Assistant.Core.Model
                 return false;
             }
 
-            if (!value.StartsWith("IKOVS_", StringComparison.Ordinal))
+            int colonIndex = value.IndexOf(':');
+            if (colonIndex != -1 && value.IndexOf(':', colonIndex + 1) != -1)
+            {
+                error = "Alias may contain at most one ':' character.";
+                return false;
+            }
+
+            string basePart = colonIndex == -1
+                ? value
+                : value[..colonIndex];
+
+            if (!basePart.StartsWith("IKOVS_", StringComparison.Ordinal))
             {
                 error = "Alias must start with the prefix 'IKOVS_'.";
                 return false;
             }
 
-            for (int characterIndex = 0; characterIndex < value.Length; characterIndex++)
+            for (int characterIndex = 0; characterIndex < basePart.Length; characterIndex++)
             {
-                char character = value[characterIndex];
+                char character = basePart[characterIndex];
 
                 bool isUppercaseLetter = character >= 'A' && character <= 'Z';
                 bool isDigit = character >= '0' && character <= '9';
@@ -61,12 +72,21 @@ namespace Assistant.Core.Model
                     continue;
                 }
 
-                error = $"Alias contains an invalid character '{character}' at index {characterIndex}. Allowed: A-Z, 0-9, '_', '-'.";
+                error =
+                    $"Alias contains an invalid character '{character}' at index {characterIndex}. " +
+                    "Allowed in base alias: A-Z, 0-9, '_', '-'.";
+                return false;
+            }
+
+            if (colonIndex != -1 && colonIndex == value.Length - 1)
+            {
+                error = "Alias role must not be empty after ':'.";
                 return false;
             }
 
             error = null;
             return true;
         }
+
     }
 }
