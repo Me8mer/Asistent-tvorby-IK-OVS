@@ -47,17 +47,17 @@ namespace Assistant.Pipeline.Initiation
 
         public async Task GenerateSectionAsync(
             InternalModel internalModel,
-            IReadOnlyList<FieldAlias> sectionAliases,
+            IReadOnlyList<FieldAlias> sectionFieldAliases,
             string sectionContextText,
             CancellationToken cancellationToken)
         {
             if (internalModel is null)
                 throw new ArgumentNullException(nameof(internalModel));
 
-            if (sectionAliases is null)
-                throw new ArgumentNullException(nameof(sectionAliases));
+            if  (sectionFieldAliases is null)
+                throw new ArgumentNullException(nameof(sectionFieldAliases));
 
-            foreach (FieldAlias alias in sectionAliases)
+            foreach (FieldAlias alias in sectionFieldAliases)
             {
                 FieldNode fieldNode = internalModel.GetField(alias);
 

@@ -11,6 +11,7 @@ namespace Assistant.Core.Model
         public FieldAlias Alias { get; }
         public FieldValue CurrentValue { get; private set; }
         public IReadOnlyList<Proposal> ProposalHistory { get; }
+        public SectionAlias? ParentSectionAlias { get; }
 
         public FieldBinding? Binding { get; private set; }
         public FieldDescriptor? Descriptor { get; private set; }
@@ -102,5 +103,6 @@ namespace Assistant.Core.Model
         {
             Dependency = dependencySnapshot;
         }
+
     }
 }

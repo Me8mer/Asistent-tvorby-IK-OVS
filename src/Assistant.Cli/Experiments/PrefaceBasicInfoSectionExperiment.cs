@@ -15,7 +15,7 @@ public static class PrefaceBasicInfoSectionExperiment
             services.GetRequiredService<InitiationOrchestrator>();
 
         // 1) Section aliases
-        FieldAlias[] sectionAliases =
+        FieldAlias[] sectionFieldAliases =
         {
             PrefaceBasicInfoAliases.OrgName,
             PrefaceBasicInfoAliases.OrgIco,
@@ -30,16 +30,40 @@ public static class PrefaceBasicInfoSectionExperiment
         Dictionary<FieldAlias, FieldDescriptor> descriptorsByAlias =
             descriptors.ToDictionary(d => d.Alias);
 
+        SectionAlias rootSectionAlias = new("IKOVS_ROOT");
+        SectionAlias basicInfoSectionAlias = new(PrefaceBasicInfoAliases.Section.Value);
+
+        List<SectionDescriptor> sections = new()
+        {
+            new SectionDescriptor(
+                sectionAlias: rootSectionAlias,
+                parentSectionAlias: null,
+                childSectionAliases: new[] { basicInfoSectionAlias },
+                fieldAliases: Array.Empty<FieldAlias>(),
+                queryHints: null,
+                displayName: "IKOVS",
+                orderIndex: 0),
+
+            new SectionDescriptor(
+                sectionAlias: basicInfoSectionAlias,
+                parentSectionAlias: rootSectionAlias,
+                childSectionAliases: Array.Empty<SectionAlias>(),
+                fieldAliases: sectionFieldAliases,
+                queryHints: new[] { "preface basic info", "základní údaje" },
+                displayName: "Základní údaje",
+                orderIndex: 10)
+        };
         // 3) Fake bindings (for now)
         Dictionary<FieldAlias, FieldBinding> bindingsByAlias =
-            sectionAliases.ToDictionary(a => a, CreateMockBinding);
+            sectionFieldAliases.ToDictionary(a => a, CreateMockBinding);
 
         // 4) Internal model = simulated parsed document
         InternalModel model = new InternalModel(
             templateVersion: "preface-basic-info.v01",
-            aliases: sectionAliases,
+            aliases: sectionFieldAliases,
             bindingsByAlias: bindingsByAlias,
-            descriptorsByAlias: descriptorsByAlias);
+            descriptorsByAlias: descriptorsByAlias,
+            sections: sections);
 
         // 5) Section context (raw text)
         string sectionContext = """
@@ -61,12 +85,12 @@ public static class PrefaceBasicInfoSectionExperiment
         // 6) Run AI for the whole section
         await orchestrator.GenerateSectionAsync(
             internalModel: model,
-            sectionAliases: sectionAliases,
+            sectionFieldAliases: sectionFieldAliases,
             sectionContextText: sectionContext,
             cancellationToken: CancellationToken.None);
 
         // 7) Print results
-        PrintResults(model, sectionAliases);
+        PrintResults(model, sectionFieldAliases);
     }
 
     private static FieldBinding CreateMockBinding(FieldAlias alias)
