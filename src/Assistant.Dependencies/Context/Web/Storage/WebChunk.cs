@@ -13,6 +13,7 @@ namespace Assistant.Dependencies.Context.Web.Storage
             string chunkId,
             int chunkIndex,
             string text
+        )
         {
             ChunkId = chunkId;
             ChunkIndex = chunkIndex;
@@ -20,3 +21,4 @@ namespace Assistant.Dependencies.Context.Web.Storage
         }
     }
 }
+    

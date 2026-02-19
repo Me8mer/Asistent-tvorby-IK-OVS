@@ -8,9 +8,9 @@ namespace Assistant.Dependencies.Context.Web.Processing
     {
         public sealed class Options
         {
-            public int MaximumChunkCharacters { get; init; } = 900;
-            public int MinimumChunkCharacters { get; init; } = 80;
-            public int MaximumLinesPerChunk { get; init; } = 10;
+            public int MaximumChunkCharacters { get; init; } = 1000;
+            public int MinimumChunkCharacters { get; init; } = 200;
+            public int MaximumLinesPerChunk { get; init; } = 50;
 
             public Options()
             {

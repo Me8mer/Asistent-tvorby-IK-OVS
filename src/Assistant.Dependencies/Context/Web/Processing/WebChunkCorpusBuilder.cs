@@ -8,8 +8,8 @@ namespace Assistant.Dependencies.Context.Web.Processing
     {
         public sealed class Options
         {
-            public int MinimumPageTextLength { get; init; } = 200;
-            public int MinimumChunkTextLength { get; init; } = 80;
+            public int MinimumPageTextLength { get; init; } = 100;
+            public int MinimumChunkTextLength { get; init; } = 100;
 
             public Options()
             {

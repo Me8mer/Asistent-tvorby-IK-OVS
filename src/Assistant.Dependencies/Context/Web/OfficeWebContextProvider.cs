@@ -14,23 +14,21 @@ namespace Assistant.Dependencies.Context.Web
         private readonly IManagedCrawler managedCrawler;
         private readonly OfficeCacheStore cacheStore;
         private readonly WebCorpusBuilder corpusBuilder;
-        private readonly WebContextPackPlaceholderBuilder placeholderPackBuilder;
-
+        private readonly WebChunkCorpusBuilder chunkCorpusBuilder;
 
         public OfficeWebContextProvider(
             IManagedCrawler managedCrawler,
             OfficeCacheStore cacheStore,
             WebCorpusBuilder corpusBuilder,
-            WebContextPackPlaceholderBuilder placeholderPackBuilder)  // test
+            WebChunkCorpusBuilder chunkCorpusBuilder)
         {
-            this.managedCrawler = managedCrawler;
-            this.cacheStore = cacheStore;
-            this.corpusBuilder = corpusBuilder;
-            this.placeholderPackBuilder = placeholderPackBuilder; // test
+            this.managedCrawler = managedCrawler ?? throw new ArgumentNullException(nameof(managedCrawler));
+            this.cacheStore = cacheStore ?? throw new ArgumentNullException(nameof(cacheStore));
+            this.corpusBuilder = corpusBuilder ?? throw new ArgumentNullException(nameof(corpusBuilder));
+            this.chunkCorpusBuilder = chunkCorpusBuilder ?? throw new ArgumentNullException(nameof(chunkCorpusBuilder));
         }
 
-
-        public async Task<WebContextPack> GetOrBuildAsync(
+        public async Task<WebChunkCorpus> GetOrBuildChunkCorpusAsync(
             string officeIdentifier,
             CancellationToken cancellationToken)
         {
@@ -39,26 +37,24 @@ namespace Assistant.Dependencies.Context.Web
 
             string officeKey = NormalizeOfficeKey(officeIdentifier);
 
-            WebContextPack? cachedPack = await cacheStore.LoadContextPackAsync(officeKey);
-            if (cachedPack != null)
-                return cachedPack;
+            WebChunkCorpus? cachedChunkCorpus = await cacheStore.LoadChunkCorpusAsync(officeKey).ConfigureAwait(false);
+            if (cachedChunkCorpus != null)
+                return cachedChunkCorpus;
 
-            CrawlResult crawlResult = await managedCrawler.RunAsync(officeIdentifier, cancellationToken);
+            CrawlResult crawlResult = await managedCrawler.RunAsync(officeIdentifier, cancellationToken).ConfigureAwait(false);
 
+            // Ensure officeKey is used for storage, even if crawler returns a different identifier.
             var normalizedCrawlResult = new CrawlResult(
                 officeKey: officeKey,
                 pages: crawlResult.Pages);
 
             WebCorpus corpus = corpusBuilder.BuildCorpus(normalizedCrawlResult);
-            await cacheStore.SaveCorpusAsync(corpus);
+            await cacheStore.SaveCorpusAsync(corpus).ConfigureAwait(false);
 
-            WebContextPack pack = placeholderPackBuilder.BuildFromCorpus(corpus);
+            WebChunkCorpus chunkCorpus = chunkCorpusBuilder.Build(corpus);
+            await cacheStore.SaveChunkCorpusAsync(chunkCorpus).ConfigureAwait(false);
 
-
-            await cacheStore.SaveContextPackAsync(pack);
-
-            return pack;
-
+            return chunkCorpus;
         }
 
         private static string NormalizeOfficeKey(string officeIdentifier)
