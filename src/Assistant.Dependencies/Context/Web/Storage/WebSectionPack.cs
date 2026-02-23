@@ -33,11 +33,11 @@ namespace Assistant.Dependencies.Context.Web.Storage
     {
         public string ChunkId { get; }
         public string Url { get; }
-        public int Score { get; }
+        public double Score { get; }
         public string Text { get; }
 
         [JsonConstructor]
-        public WebSectionPackItem(string chunkId, string url, int score, string text)
+        public WebSectionPackItem(string chunkId, string url, double score, string text)
         {
             ChunkId = chunkId ?? string.Empty;
             Url = url ?? string.Empty;

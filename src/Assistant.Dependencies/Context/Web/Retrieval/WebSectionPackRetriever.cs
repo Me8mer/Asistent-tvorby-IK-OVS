@@ -2,8 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Assistant.Dependencies.Context.Web.Storage;
-using System.Globalization;
-using System.Text;
+using Assistant.Dependencies.Context.Web.Processing;
+using System.Threading.Tasks;
 
 
 namespace Assistant.Dependencies.Context.Web.Retrieval
@@ -17,6 +17,8 @@ namespace Assistant.Dependencies.Context.Web.Retrieval
             public int MaximumChunksPerUrl { get; init; } = 2;
 
             public int MinimumTokenLength { get; init; } = 3;
+            public double Bm25K1 { get; init; } = 1.2;
+            public double Bm25B { get; init; } = 0.75;
 
             public Options()
             {
@@ -74,7 +76,7 @@ namespace Assistant.Dependencies.Context.Web.Retrieval
 
         private IReadOnlyList<WebSectionPackItem> BuildSectionPackItems(WebChunkCorpus chunkCorpus, string queryText)
         {
-            HashSet<string> queryTokens = TokenizeToSet(queryText);
+            HashSet<string> queryTokens = TokenizeQueryToSet(queryText);
 
             var candidates = new List<Candidate>();
 
@@ -82,7 +84,7 @@ namespace Assistant.Dependencies.Context.Web.Retrieval
             {
                 foreach (WebChunk chunk in page.Chunks)
                 {
-                    int score = ScoreChunk(chunk.Text, queryTokens);
+                    double score = ScoreChunkBm25(chunkCorpus, page, chunk, queryTokens);
                     if (score <= 0)
                         continue;
 
@@ -136,142 +138,65 @@ namespace Assistant.Dependencies.Context.Web.Retrieval
             return selected;
         }
 
-        private int ScoreChunk(string chunkText, HashSet<string> queryTokens)
+        private double ScoreChunkBm25(WebChunkCorpus chunkCorpus, WebChunkPage page, WebChunk chunk, HashSet<string> queryTokens)
         {
             if (queryTokens.Count == 0)
                 return 0;
 
-            Dictionary<string, int> chunkTokenCounts = TokenizeToCounts(chunkText);
+            if (chunk.TotalTokenCount <= 0)
+                return 0;
 
-            int score = 0;
+            double averageDocumentLength = chunkCorpus.AverageChunkTokenCount;
+            if (averageDocumentLength <= 0)
+                return 0;
+
+            double k1 = options.Bm25K1;
+            double b = options.Bm25B;
+
+            double documentLength = chunk.TotalTokenCount;
+
+            double score = 0;
 
             foreach (string queryToken in queryTokens)
             {
-                if (chunkTokenCounts.TryGetValue(queryToken, out int count))
-                {
-                    score += 2;
-                    if (count >= 2)
-                        score += 1;
-                }
+                if (!chunk.TokenCounts.TryGetValue(queryToken, out int termFrequency))
+                    continue;
+
+                if (!chunkCorpus.InverseDocumentFrequencyByToken.TryGetValue(queryToken, out double inverseDocumentFrequency))
+                    continue;
+
+                double tf = termFrequency;
+
+                double normalization = k1 * (1.0 - b + (b * (documentLength / averageDocumentLength)));
+                double numerator = tf * (k1 + 1.0);
+                double denominator = tf + normalization;
+
+                score += inverseDocumentFrequency * (numerator / denominator);
             }
 
             return score;
         }
 
-        private HashSet<string> TokenizeToSet(string text)
+        private HashSet<string> TokenizeQueryToSet(string text)
         {
-            var tokens = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var tokens = new HashSet<string>(StringComparer.Ordinal);
 
-            if (string.IsNullOrWhiteSpace(text))
-                return tokens;
+            IReadOnlyList<string> rawTokens = WebTextTokenizer.TokenizeForQuery(text, options.MinimumTokenLength);
 
-            foreach (string token in Tokenize(text))
-                if (!string.IsNullOrWhiteSpace(token))
-                    tokens.Add(token);
+            for (int index = 0; index < rawTokens.Count; index++)
+                tokens.Add(rawTokens[index]);
 
             return tokens;
         }
-
-        private Dictionary<string, int> TokenizeToCounts(string text)
-        {
-            var counts = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
-
-            if (string.IsNullOrWhiteSpace(text))
-                return counts;
-
-            foreach (string token in Tokenize(text))
-            {
-                if (!counts.TryGetValue(token, out int count))
-                    count = 0;
-
-                if (!string.IsNullOrWhiteSpace(token))
-                    counts[token] = count + 1;
-            }
-
-            return counts;
-        }
-
-        private IEnumerable<string> Tokenize(string text)
-        {
-            int startIndex = -1;
-
-            for (int index = 0; index < text.Length; index++)
-            {
-                char character = text[index];
-
-                bool isTokenChar = char.IsLetterOrDigit(character);
-
-                if (isTokenChar)
-                {
-                    if (startIndex == -1)
-                        startIndex = index;
-
-                    continue;
-                }
-
-                if (startIndex != -1)
-                {
-                    string? token = NormalizeToken(text.Substring(startIndex, index - startIndex));
-                    if (!string.IsNullOrEmpty(token))
-                        yield return token;
-
-                    startIndex = -1;
-                }
-            }
-
-            if (startIndex != -1)
-            {
-                string? token = NormalizeToken(text.Substring(startIndex));
-                if (!string.IsNullOrEmpty(token))
-                    yield return token;
-            }
-        }
-
-        private string? NormalizeToken(string token)
-        {
-            if (string.IsNullOrWhiteSpace(token))
-                return null;
-
-            string lowered = token.ToLowerInvariant().Trim();
-
-            string withoutDiacritics = RemoveDiacritics(lowered);
-
-            if (withoutDiacritics.Length < options.MinimumTokenLength)
-                return null;
-
-            return withoutDiacritics;
-        }
-
-        private static string RemoveDiacritics(string text)
-        {
-            string decomposed = text.Normalize(NormalizationForm.FormD);
-
-            var builder = new StringBuilder(decomposed.Length);
-
-            foreach (char character in decomposed)
-            {
-                UnicodeCategory category = CharUnicodeInfo.GetUnicodeCategory(character);
-
-                if (category != UnicodeCategory.NonSpacingMark &&
-                    category != UnicodeCategory.SpacingCombiningMark &&
-                    category != UnicodeCategory.EnclosingMark)
-                {
-                    builder.Append(character);
-                }
-            }
-
-            return builder.ToString().Normalize(NormalizationForm.FormC);
-        }
-
 
         private sealed class Candidate
         {
             public string Url { get; }
             public string ChunkId { get; }
             public string Text { get; }
-            public int Score { get; }
+            public double Score { get; }
 
-            public Candidate(string url, string chunkId, string text, int score)
+            public Candidate(string url, string chunkId, string text, double score)
             {
                 Url = url ?? string.Empty;
                 ChunkId = chunkId ?? string.Empty;

@@ -63,7 +63,7 @@ namespace Assistant.Dependencies.Context.Web.Storage
                 return null;
 
             string json = await File.ReadAllTextAsync(path);
-            return JsonSerializer.Deserialize<WebCorpus>(json);
+            return JsonSerializer.Deserialize<WebCorpus>(json, jsonOptions);
         }
 
         public async Task SaveContextPackAsync(WebContextPack pack)
@@ -85,7 +85,7 @@ namespace Assistant.Dependencies.Context.Web.Storage
                 return null;
 
             string json = await File.ReadAllTextAsync(path);
-            return JsonSerializer.Deserialize<WebContextPack>(json);
+            return JsonSerializer.Deserialize<WebContextPack>(json, jsonOptions);
         }
 
         public async Task SaveChunkCorpusAsync(WebChunkCorpus corpus)
@@ -107,7 +107,7 @@ namespace Assistant.Dependencies.Context.Web.Storage
                 return null;
 
             string json = await File.ReadAllTextAsync(path);
-            return JsonSerializer.Deserialize<WebChunkCorpus>(json);
+            return JsonSerializer.Deserialize<WebChunkCorpus>(json, jsonOptions);
         }
 
         private string GetSectionPackPath(string officeKey, string sectionKey)

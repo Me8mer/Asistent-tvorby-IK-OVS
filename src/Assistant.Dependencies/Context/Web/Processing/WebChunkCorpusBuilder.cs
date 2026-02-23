@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Assistant.Dependencies.Context.Web.Storage;
+using System.Linq;
 
 namespace Assistant.Dependencies.Context.Web.Processing
 {
@@ -10,6 +11,7 @@ namespace Assistant.Dependencies.Context.Web.Processing
         {
             public int MinimumPageTextLength { get; init; } = 100;
             public int MinimumChunkTextLength { get; init; } = 100;
+            public int MinimumTokenLength { get; init; } = 3;
 
             public Options()
             {
@@ -50,10 +52,29 @@ namespace Assistant.Dependencies.Context.Web.Processing
 
                     string chunkId = BuildChunkId(page.ContentHash, chunkIndex);
 
+                    List<string> tokensInChunk = WebTextTokenizer.TokenizeForIndex(chunkText, options.MinimumTokenLength).ToList();
+
+                    if (tokensInChunk.Count == 0)
+                        continue;
+
+                    var tokenCounts = new Dictionary<string, int>(StringComparer.Ordinal);
+
+                    for (int tokenIndex = 0; tokenIndex < tokensInChunk.Count; tokenIndex++)
+                    {
+                        string token = tokensInChunk[tokenIndex];
+
+                        if (tokenCounts.TryGetValue(token, out int existingCount))
+                            tokenCounts[token] = existingCount + 1;
+                        else
+                            tokenCounts[token] = 1;
+                    }
+
                     keptChunks.Add(new WebChunk(
                         chunkId: chunkId,
                         chunkIndex: chunkIndex,
-                        text: chunkText));
+                        text: chunkText,
+                        totalTokenCount: tokensInChunk.Count,
+                        tokenCounts: tokenCounts));
                 }
 
                 if (keptChunks.Count == 0)
@@ -65,9 +86,14 @@ namespace Assistant.Dependencies.Context.Web.Processing
                     chunks: keptChunks));
             }
 
+            (int totalChunks, double averageChunkTokenCount, IReadOnlyDictionary<string, double> idfByToken) =
+                ComputeStatistics(chunkPages, minimumTokenLength: options.MinimumTokenLength);
             return new WebChunkCorpus(
                 officeKey: corpus.OfficeKey,
                 builtAtUtc: DateTime.UtcNow,
+                totalChunks: totalChunks,
+                averageChunkTokenCount: averageChunkTokenCount,
+                inverseDocumentFrequencyByToken: idfByToken,
                 pages: chunkPages);
         }
 
@@ -151,6 +177,58 @@ namespace Assistant.Dependencies.Context.Web.Processing
             return safePageHash + "_" + chunkIndex;
         }
 
+
+        private static (int TotalChunks, double AverageChunkTokenCount, IReadOnlyDictionary<string, double> IdfByToken)
+            ComputeStatistics(IReadOnlyList<WebChunkPage> pages, int minimumTokenLength)
+        {
+            int totalChunks = 0;
+            long totalTokenCount = 0;
+
+            var documentFrequencyByToken = new Dictionary<string, int>(StringComparer.Ordinal);
+
+            for (int pageIndex = 0; pageIndex < pages.Count; pageIndex++)
+            {
+                WebChunkPage page = pages[pageIndex];
+
+                for (int chunkIndex = 0; chunkIndex < page.Chunks.Count; chunkIndex++)
+                {
+                    WebChunk chunk = page.Chunks[chunkIndex];
+                    totalChunks++;
+
+                    List<string> tokensInChunk = WebTextTokenizer.TokenizeForIndex(chunk.Text, minimumTokenLength).ToList();
+
+                    totalTokenCount += tokensInChunk.Count;
+
+                    var distinctTokensInChunk = new HashSet<string>(tokensInChunk, StringComparer.Ordinal);
+
+                    foreach (string token in chunk.TokenCounts.Keys)
+                    {
+                        if (documentFrequencyByToken.TryGetValue(token, out int existingCount))
+                            documentFrequencyByToken[token] = existingCount + 1;
+                        else
+                            documentFrequencyByToken[token] = 1;
+                    }
+                }
+            }
+
+            double averageChunkTokenCount = totalChunks > 0
+                ? (double)totalTokenCount / totalChunks
+                : 0;
+
+            var idfByToken = new Dictionary<string, double>(documentFrequencyByToken.Count, StringComparer.Ordinal);
+
+            foreach (KeyValuePair<string, int> pair in documentFrequencyByToken)
+            {
+                string token = pair.Key;
+                int documentFrequency = pair.Value;
+
+                double idf = Math.Log(1.0 + ((totalChunks - documentFrequency + 0.5) / (documentFrequency + 0.5)));
+                idfByToken[token] = idf;
+            }
+
+            return (totalChunks, averageChunkTokenCount, idfByToken);
+        }
+
         // TODO. Check if too agressive
         private static readonly string[] JunkUrlSubstrings =
         {
@@ -171,7 +249,7 @@ namespace Assistant.Dependencies.Context.Web.Processing
             // "photo",
             // "archiv",
             // "archive",
-            // "novinky",
+            "novinky",
             "news"
         };
     }
