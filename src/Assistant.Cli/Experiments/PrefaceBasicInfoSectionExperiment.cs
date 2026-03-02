@@ -11,10 +11,14 @@ public static class PrefaceBasicInfoSectionExperiment
 {
     public static async Task RunAsync(ServiceProvider services)
     {
-        InitiationOrchestrator orchestrator =
-            services.GetRequiredService<InitiationOrchestrator>();
+        ContextAwareInitiationOrchestrator orchestrator =
+            services.GetRequiredService<ContextAwareInitiationOrchestrator>();
 
-        // 1) Section aliases
+        // Office website used as web context source (crawler + retrieval).
+        // You can override this in your runner by passing a different URL.
+        string officeIdentifier = "https://www.mmr.gov.cz/";
+
+        // 1) Section field aliases
         FieldAlias[] sectionFieldAliases =
         {
             PrefaceBasicInfoAliases.OrgName,
@@ -23,13 +27,14 @@ public static class PrefaceBasicInfoSectionExperiment
             PrefaceBasicInfoAliases.OrgAddress
         };
 
-        // 2) Descriptors
+        // 2) Field descriptors (used by prompt builder)
         IReadOnlyList<FieldDescriptor> descriptors =
             PrefaceBasicInfoDescriptors.Create();
 
         Dictionary<FieldAlias, FieldDescriptor> descriptorsByAlias =
-            descriptors.ToDictionary(d => d.Alias);
+            descriptors.ToDictionary(descriptor => descriptor.Alias);
 
+        // 3) Section graph (used by SectionQueryBuilder inside CompositeContextProvider)
         SectionAlias rootSectionAlias = new("IKOVS_ROOT");
         SectionAlias basicInfoSectionAlias = new(PrefaceBasicInfoAliases.Section.Value);
 
@@ -49,15 +54,25 @@ public static class PrefaceBasicInfoSectionExperiment
                 parentSectionAlias: rootSectionAlias,
                 childSectionAliases: Array.Empty<SectionAlias>(),
                 fieldAliases: sectionFieldAliases,
-                queryHints: new[] { "preface basic info", "základní údaje" },
+                // These query hints are intentionally Czech, because the office websites
+                // are Czech, and the query builder should include them.
+                queryHints: new[]
+                {
+                    "základní údaje",
+                    "kontakt",
+                    "IČO",
+                    "adresa sídla",
+                    "Ministerstvo pro místní rozvoj"
+                },
                 displayName: "Základní údaje",
                 orderIndex: 10)
         };
-        // 3) Fake bindings (for now)
-        Dictionary<FieldAlias, FieldBinding> bindingsByAlias =
-            sectionFieldAliases.ToDictionary(a => a, CreateMockBinding);
 
-        // 4) Internal model = simulated parsed document
+        // 4) Fake bindings (simulated parsed document locations)
+        Dictionary<FieldAlias, FieldBinding> bindingsByAlias =
+            sectionFieldAliases.ToDictionary(alias => alias, CreateMockBinding);
+
+        // 5) Internal model = simulated parsed document
         InternalModel model = new InternalModel(
             templateVersion: "preface-basic-info.v01",
             aliases: sectionFieldAliases,
@@ -65,8 +80,9 @@ public static class PrefaceBasicInfoSectionExperiment
             descriptorsByAlias: descriptorsByAlias,
             sections: sections);
 
-        // 5) Section context (raw text)
-        string sectionContext = """
+        // 6) Section context (raw text from the document)
+        // This is combined with the retrieved web context by the orchestrator.
+        string sectionContextText = """
         Základní údaje Informační koncepce pro <<Ministerstvo pro místní rozvoj České republiky>>
 
         Název orgánu veřejné správy
@@ -82,27 +98,27 @@ public static class PrefaceBasicInfoSectionExperiment
         <<MISSING>>
         """;
 
-        // 6) Run AI for the whole section
+        // 7) Run AI for the whole section with web context injection
         await orchestrator.GenerateSectionAsync(
             internalModel: model,
             sectionFieldAliases: sectionFieldAliases,
-            sectionContextText: sectionContext,
+            officeIdentifier: officeIdentifier,
+            sectionContextText: sectionContextText,
             cancellationToken: CancellationToken.None);
 
-        // 7) Print results
+        // 8) Print results
         PrintResults(model, sectionFieldAliases);
     }
 
     private static FieldBinding CreateMockBinding(FieldAlias alias)
-{
-    return new FieldBinding(
-        alias: alias,
-        sdtId: null,
-        occurrenceIndex: null,
-        locationHint: "HARDCODED_PREFACE_BASIC_INFO",
-        contentKind: FieldContentKind.TableCell);
-}
-
+    {
+        return new FieldBinding(
+            alias: alias,
+            sdtId: null,
+            occurrenceIndex: null,
+            locationHint: "HARDCODED_PREFACE_BASIC_INFO",
+            contentKind: FieldContentKind.TableCell);
+    }
 
     private static void PrintResults(
         InternalModel model,
@@ -131,8 +147,4 @@ public static class PrefaceBasicInfoSectionExperiment
             Console.WriteLine();
         }
     }
-
 }
-
-
-

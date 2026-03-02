@@ -15,17 +15,6 @@ namespace Assistant.Core.Model
         public IReadOnlyDictionary<FieldAlias, FieldNode> FieldsByAlias => fieldsByAlias;
         public IReadOnlyDictionary<SectionAlias, SectionDescriptor> SectionsByAlias => sectionsByAlias;
 
-        public InternalModel(string templateVersion, IEnumerable<FieldAlias> aliases)
-            : this(
-                templateVersion,
-                aliases,
-                bindingsByAlias: null,
-                descriptorsByAlias: null,
-                sections: null)
-        {
-        }
-
-
         public InternalModel(
             string templateVersion,
             IEnumerable<FieldAlias> aliases,

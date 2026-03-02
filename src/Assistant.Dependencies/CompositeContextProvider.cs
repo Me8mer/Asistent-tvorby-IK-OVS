@@ -3,9 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-
 using Assistant.Core.Model;
-using Assistant.Core.Context;
 using Assistant.Dependencies.Context.Web;
 using Assistant.Dependencies.Context.Web.Retrieval;
 using Assistant.Dependencies.Context.Web.Storage;
@@ -44,7 +42,7 @@ namespace Assistant.Dependencies.Context
     ///     <see cref="WebSectionPackRetriever.GetOrBuildSectionPackAsync"/> to retrieve
     ///     the highest scoring chunks according to a BM25 ranking.  The retriever
     ///     caches results keyed by office and section so repeated calls are
-    ///     inexpensive【386099389844840†L59-L96】.</description>
+    ///     inexpensive.</description>
     ///   </item>
     ///   <item>
     ///     <description>All retrieved chunks are converted into <see cref="WebContextSnippet"/>
@@ -164,7 +162,7 @@ namespace Assistant.Dependencies.Context
 
                 // Use the query builder to assemble search terms from the section
                 // path, field aliases and query hints.  The builder enforces
-                // deduplication and length limits【128327383949581†L27-L49】.
+                // deduplication and length limits
                 SectionQuery sectionQuery = sectionQueryBuilder.BuildSectionQuery(sectionAlias, sectionsByAlias);
                 string queryText = sectionQuery.QueryText;
 
