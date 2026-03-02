@@ -52,7 +52,10 @@ namespace Assistant.Dependencies.Context.Web.Processing
 
                     string chunkId = BuildChunkId(page.ContentHash, chunkIndex);
 
-                    List<string> tokensInChunk = WebTextTokenizer.TokenizeForIndex(chunkText, options.MinimumTokenLength).ToList();
+                    List<string> tokensInChunk = LuceneCzechTokenizer
+                        .Tokenize(chunkText)
+                        .Where(token => token.Length >= options.MinimumTokenLength)
+                        .ToList();
 
                     if (tokensInChunk.Count == 0)
                         continue;
@@ -195,11 +198,7 @@ namespace Assistant.Dependencies.Context.Web.Processing
                     WebChunk chunk = page.Chunks[chunkIndex];
                     totalChunks++;
 
-                    List<string> tokensInChunk = WebTextTokenizer.TokenizeForIndex(chunk.Text, minimumTokenLength).ToList();
-
-                    totalTokenCount += tokensInChunk.Count;
-
-                    var distinctTokensInChunk = new HashSet<string>(tokensInChunk, StringComparer.Ordinal);
+                    totalTokenCount += chunk.TotalTokenCount;
 
                     foreach (string token in chunk.TokenCounts.Keys)
                     {
@@ -234,21 +233,23 @@ namespace Assistant.Dependencies.Context.Web.Processing
         {
             "cookie",
             "cookies",
-            // "gdpr",
-            // "privacy",
-            // "ochrana-osobnich-udaju",
+            "gdpr",
+            "privacy",
+            "ochrana-osobnich-udaju",
             // "pristupnost",
             // "accessibility",
-            // "sitemap",
+            "sitemap",
             // "mapa-stranek",
-            // "vyhledavani",
-            // "search",
+            "vyhledavani",
+            "search",
             // "galerie",
             // "fotogalerie",
             // "gallery",
             // "photo",
             // "archiv",
             // "archive",
+            "kariera",
+            "kariéra",
             "novinky",
             "news"
         };

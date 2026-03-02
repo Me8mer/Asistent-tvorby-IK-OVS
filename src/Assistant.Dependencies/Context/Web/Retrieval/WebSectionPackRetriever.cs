@@ -19,6 +19,26 @@ namespace Assistant.Dependencies.Context.Web.Retrieval
             public int MinimumTokenLength { get; init; } = 3;
             public double Bm25K1 { get; init; } = 1.2;
             public double Bm25B { get; init; } = 0.75;
+            public double UrlDiversityAlpha { get; init; } = 0.3;
+            public IReadOnlyCollection<string> NegativeWords { get; init; } = DefaultNegativeWords;
+
+            public double NegativeTokenPenaltyFactor { get; init; } = 0.9;
+            public double MaximumOverflowRatio { get; init; } = 0.15;
+
+            private static readonly string[] DefaultNegativeWords =
+            {
+                "kariera",
+                "zaměstnání",
+                "novinky",
+                "tisková",
+                "akce",
+                "galerie",
+                "nabízíme",
+                "plat",
+                "příplatek",
+                "osobnost",
+                "Aktuality"
+            };
 
             public Options()
             {
@@ -27,11 +47,13 @@ namespace Assistant.Dependencies.Context.Web.Retrieval
 
         private readonly OfficeCacheStore cacheStore;
         private readonly Options options;
+        private readonly HashSet<string> negativeTokens;
 
         public WebSectionPackRetriever(OfficeCacheStore cacheStore, Options? options = null)
         {
             this.cacheStore = cacheStore ?? throw new ArgumentNullException(nameof(cacheStore));
             this.options = options ?? new Options();
+            negativeTokens = BuildNegativeTokenSet(this.options.NegativeWords);
         }
 
         public async Task<WebSectionPack> GetOrBuildSectionPackAsync(
@@ -96,43 +118,80 @@ namespace Assistant.Dependencies.Context.Web.Retrieval
                 }
             }
 
-            IReadOnlyList<Candidate> sorted = candidates
-                .OrderByDescending(candidate => candidate.Score)
-                .ThenBy(candidate => candidate.Url, StringComparer.OrdinalIgnoreCase)
-                .ToList();
+            var remainingCandidates = new List<Candidate>(candidates);
 
             var selected = new List<WebSectionPackItem>(capacity: options.MaximumChunks);
             var perUrlCounts = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
 
             int totalCharacters = 0;
 
-            foreach (Candidate candidate in sorted)
+            while (selected.Count < options.MaximumChunks && remainingCandidates.Count > 0)
             {
-                if (selected.Count >= options.MaximumChunks)
+                Candidate? bestCandidate = null;
+                double bestAdjustedScore = double.MinValue;
+
+                for (int index = 0; index < remainingCandidates.Count; index++)
+                {
+                    Candidate candidate = remainingCandidates[index];
+
+                    if (!perUrlCounts.TryGetValue(candidate.Url, out int urlCount))
+                        urlCount = 0;
+
+                    double adjustedScore =
+                        candidate.Score / (1.0 + options.UrlDiversityAlpha * urlCount);
+
+                    if (adjustedScore > bestAdjustedScore)
+                    {
+                        bestAdjustedScore = adjustedScore;
+                        bestCandidate = candidate;
+                    }
+                }
+
+                if (bestCandidate == null)
                     break;
 
-                if (!perUrlCounts.TryGetValue(candidate.Url, out int urlCount))
-                    urlCount = 0;
+                string text = bestCandidate.Text ?? string.Empty;
 
-                if (urlCount >= options.MaximumChunksPerUrl)
-                    continue;
+                int hardLimit = options.MaximumTotalCharacters;
+                int softLimit = hardLimit + (int)(hardLimit * options.MaximumOverflowRatio);
 
-                int remaining = options.MaximumTotalCharacters - totalCharacters;
-                if (remaining <= 0)
+                if (totalCharacters >= softLimit)
                     break;
 
-                string text = candidate.Text ?? string.Empty;
-                if (text.Length > remaining)
-                    text = text.Substring(0, remaining);
+                int newTotal = totalCharacters + text.Length;
+
+                if (newTotal <= hardLimit)
+                {
+                    // Fully inside hard limit
+                }
+                else if (newTotal <= softLimit)
+                {
+                    // Allow full chunk even though exceeding hard limit
+                }
+                else
+                {
+                    // Would exceed soft limit -> try trimmed
+                    int remaining = hardLimit - totalCharacters;
+
+                    if (remaining <= 0)
+                        break;
+
+                    text = TrimToSentenceBoundary(text, remaining);
+                }
 
                 selected.Add(new WebSectionPackItem(
-                    chunkId: candidate.ChunkId,
-                    url: candidate.Url,
-                    score: candidate.Score,
+                    chunkId: bestCandidate.ChunkId,
+                    url: bestCandidate.Url,
+                    score: bestCandidate.Score,
                     text: text));
 
-                perUrlCounts[candidate.Url] = urlCount + 1;
+                if (!perUrlCounts.TryGetValue(bestCandidate.Url, out int existingCount))
+                    existingCount = 0;
+
+                perUrlCounts[bestCandidate.Url] = existingCount + 1;
                 totalCharacters += text.Length;
+
+                remainingCandidates.Remove(bestCandidate);
             }
 
             return selected;
@@ -174,6 +233,24 @@ namespace Assistant.Dependencies.Context.Web.Retrieval
                 score += inverseDocumentFrequency * (numerator / denominator);
             }
 
+            // Apply penalty for negative tokens
+
+            if (score <= 0)
+                return 0;
+
+            if (negativeTokens.Count > 0)
+            {
+                double penaltyFactor = options.NegativeTokenPenaltyFactor;
+
+                foreach (string negativeToken in negativeTokens)
+                {
+                    if (chunk.TokenCounts.TryGetValue(negativeToken, out int count) && count > 0)
+                    {
+                        score *= Math.Pow(penaltyFactor, count);
+                    }
+                }
+            }
+
             return score;
         }
 
@@ -181,7 +258,11 @@ namespace Assistant.Dependencies.Context.Web.Retrieval
         {
             var tokens = new HashSet<string>(StringComparer.Ordinal);
 
-            IReadOnlyList<string> rawTokens = WebTextTokenizer.TokenizeForQuery(text, options.MinimumTokenLength);
+            IReadOnlyList<string> rawTokens =
+            LuceneCzechTokenizer
+                .Tokenize(text)
+                .Where(token => token.Length >= options.MinimumTokenLength)
+                .ToList();
 
             for (int index = 0; index < rawTokens.Count; index++)
                 tokens.Add(rawTokens[index]);
@@ -204,5 +285,49 @@ namespace Assistant.Dependencies.Context.Web.Retrieval
                 Score = score;
             }
         }
+
+
+        private static string TrimToSentenceBoundary(string text, int maximumLength)
+        {
+            if (string.IsNullOrWhiteSpace(text))
+                return string.Empty;
+
+            if (text.Length <= maximumLength)
+                return text;
+
+            string candidate = text.Substring(0, maximumLength);
+
+            int lastPeriod = candidate.LastIndexOf('.');
+            int lastQuestion = candidate.LastIndexOf('?');
+            int lastExclamation = candidate.LastIndexOf('!');
+
+            int lastSentenceEnd = Math.Max(lastPeriod, Math.Max(lastQuestion, lastExclamation));
+
+            if (lastSentenceEnd <= 0)
+                return candidate;
+
+            return candidate.Substring(0, lastSentenceEnd + 1);
+        }
+
+        private static HashSet<string> BuildNegativeTokenSet(IEnumerable<string> rawNegativeWords)
+        {
+            var set = new HashSet<string>(StringComparer.Ordinal);
+
+            foreach (string word in rawNegativeWords)
+            {
+                if (string.IsNullOrWhiteSpace(word))
+                    continue;
+
+                IReadOnlyList<string> tokens = LuceneCzechTokenizer.Tokenize(word);
+
+                for (int index = 0; index < tokens.Count; index++)
+                {
+                    set.Add(tokens[index]);
+                }
+            }
+
+            return set;
+        }
+
     }
 }

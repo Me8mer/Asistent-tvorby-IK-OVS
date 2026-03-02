@@ -1,80 +1,80 @@
-using System;
-using System.Collections.Generic;
-using System.Globalization;
-using System.Text;
+// using System;
+// using System.Collections.Generic;
+// using System.Globalization;
+// using System.Text;
 
-namespace Assistant.Dependencies.Context.Web.Processing
-{
-    internal static class WebTextTokenizer
-    {
-        public static IReadOnlyList<string> TokenizeForIndex(string? text, int minimumTokenLength)
-        {
-            return TokenizeInternal(text, removeDiacritics: true, minimumTokenLength);
-        }
+// namespace Assistant.Dependencies.Context.Web.Processing
+// {
+//     internal static class WebTextTokenizer
+//     {
+//         public static IReadOnlyList<string> TokenizeForIndex(string? text, int minimumTokenLength)
+//         {
+//             return TokenizeInternal(text, removeDiacritics: true, minimumTokenLength: minimumTokenLength);
+//         }
 
-        public static IReadOnlyList<string> TokenizeForQuery(string? text, int minimumTokenLength)
-        {
-            return TokenizeInternal(text, removeDiacritics: true, minimumTokenLength);
-        }
+//         public static IReadOnlyList<string> TokenizeForQuery(string? text, int minimumTokenLength)
+//         {
+//             return TokenizeInternal(text, removeDiacritics: true, minimumTokenLength: minimumTokenLength);
+//         }
 
-        private static IReadOnlyList<string> TokenizeInternal(string? text, bool removeDiacritics, int minimumTokenLength)
-        {
-            if (string.IsNullOrWhiteSpace(text))
-                return Array.Empty<string>();
+//         private static IReadOnlyList<string> TokenizeInternal(string? text, bool removeDiacritics, int minimumTokenLength)
+//         {
+//             if (string.IsNullOrWhiteSpace(text))
+//                 return Array.Empty<string>();
 
-            string normalized = text.ToLowerInvariant();
+//             string normalized = text.ToLowerInvariant();
 
-            if (removeDiacritics)
-                normalized = RemoveDiacritics(normalized);
+//             if (removeDiacritics)
+//                 normalized = RemoveDiacritics(normalized);
 
-            var tokens = new List<string>(Math.Min(256, normalized.Length / 4));
-            var currentToken = new StringBuilder();
+//             var tokens = new List<string>(Math.Min(256, normalized.Length / 4));
+//             var currentToken = new StringBuilder();
 
-            for (int index = 0; index < normalized.Length; index++)
-            {
-                char character = normalized[index];
+//             for (int index = 0; index < normalized.Length; index++)
+//             {
+//                 char character = normalized[index];
 
-                bool isTokenCharacter =
-                    char.IsLetterOrDigit(character) ||
-                    character == '_';
+//                 bool isTokenCharacter =
+//                     char.IsLetterOrDigit(character) ||
+//                     character == '_';
 
-                if (isTokenCharacter)
-                {
-                    currentToken.Append(character);
-                    continue;
-                }
+//                 if (isTokenCharacter)
+//                 {
+//                     currentToken.Append(character);
+//                     continue;
+//                 }
 
-                FlushTokenIfAny(tokens, currentToken, minimumTokenLength);
-            }
+//                 FlushTokenIfAny(tokens, currentToken, minimumTokenLength);
+//             }
 
-            FlushTokenIfAny(tokens, currentToken, minimumTokenLength);
+//             FlushTokenIfAny(tokens, currentToken, minimumTokenLength);
 
-            return tokens;
-        }
+//             return tokens;
+//         }
 
-        private static void FlushTokenIfAny(List<string> tokens, StringBuilder currentToken, int minimumTokenLength)
-        {
-            if (currentToken.Length >= minimumTokenLength)
-                tokens.Add(currentToken.ToString());
+//         private static void FlushTokenIfAny(List<string> tokens, StringBuilder currentToken, int minimumTokenLength)
+//         {
+//             if (currentToken.Length >= minimumTokenLength)
+//                 tokens.Add(currentToken.ToString());
 
-            currentToken.Clear();
-        }
+//             currentToken.Clear();
+//         }
 
-        private static string RemoveDiacritics(string text)
-        {
-            string decomposed = text.Normalize(NormalizationForm.FormD);
-            var filtered = new StringBuilder(decomposed.Length);
+//         private static string RemoveDiacritics(string text)
+//         {
+//             string decomposed = text.Normalize(NormalizationForm.FormD);
+//             var filtered = new StringBuilder(decomposed.Length);
 
-            for (int index = 0; index < decomposed.Length; index++)
-            {
-                char character = decomposed[index];
-                UnicodeCategory category = CharUnicodeInfo.GetUnicodeCategory(character);
+//             for (int index = 0; index < decomposed.Length; index++)
+//             {
+//                 char character = decomposed[index];
+//                 UnicodeCategory category = CharUnicodeInfo.GetUnicodeCategory(character);
 
-                if (category != UnicodeCategory.NonSpacingMark)
-                    filtered.Append(character);
-            }
+//                 if (category != UnicodeCategory.NonSpacingMark)
+//                     filtered.Append(character);
+//             }
 
-            return filtered.ToString().Normalize(NormalizationForm.FormC);
-        }
-    }
-}
+//             return filtered.ToString().Normalize(NormalizationForm.FormC);
+//         }
+//     }
+// }
