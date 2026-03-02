@@ -43,7 +43,6 @@ public static class PrefaceBasicInfoSectionExperiment
             new SectionDescriptor(
                 sectionAlias: rootSectionAlias,
                 parentSectionAlias: null,
-                childSectionAliases: new[] { basicInfoSectionAlias },
                 fieldAliases: Array.Empty<FieldAlias>(),
                 queryHints: null,
                 displayName: "IKOVS",
@@ -52,7 +51,6 @@ public static class PrefaceBasicInfoSectionExperiment
             new SectionDescriptor(
                 sectionAlias: basicInfoSectionAlias,
                 parentSectionAlias: rootSectionAlias,
-                childSectionAliases: Array.Empty<SectionAlias>(),
                 fieldAliases: sectionFieldAliases,
                 // These query hints are intentionally Czech, because the office websites
                 // are Czech, and the query builder should include them.
@@ -72,13 +70,16 @@ public static class PrefaceBasicInfoSectionExperiment
         Dictionary<FieldAlias, FieldBinding> bindingsByAlias =
             sectionFieldAliases.ToDictionary(alias => alias, CreateMockBinding);
 
-        // 5) Internal model = simulated parsed document
-        InternalModel model = new InternalModel(
+        // 5) Internal model runtime = simulated parsed document + services
+        var runtimeBuilder = new InternalModelRuntimeBuilder();
+
+        InternalModelRuntime runtime = runtimeBuilder.Build(
             templateVersion: "preface-basic-info.v01",
             aliases: sectionFieldAliases,
             bindingsByAlias: bindingsByAlias,
             descriptorsByAlias: descriptorsByAlias,
             sections: sections);
+
 
         // 6) Section context (raw text from the document)
         // This is combined with the retrieved web context by the orchestrator.
@@ -100,14 +101,14 @@ public static class PrefaceBasicInfoSectionExperiment
 
         // 7) Run AI for the whole section with web context injection
         await orchestrator.GenerateSectionAsync(
-            internalModel: model,
+            internalModelRuntime: runtime,
             sectionFieldAliases: sectionFieldAliases,
             officeIdentifier: officeIdentifier,
             sectionContextText: sectionContextText,
             cancellationToken: CancellationToken.None);
 
         // 8) Print results
-        PrintResults(model, sectionFieldAliases);
+        PrintResults(runtime.Model, sectionFieldAliases);
     }
 
     private static FieldBinding CreateMockBinding(FieldAlias alias)

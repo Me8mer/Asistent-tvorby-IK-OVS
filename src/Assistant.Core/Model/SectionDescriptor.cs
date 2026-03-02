@@ -7,7 +7,7 @@ namespace Assistant.Core.Model
     {
         public SectionAlias SectionAlias { get; }
         public SectionAlias? ParentSectionAlias { get; }
-        public IReadOnlyList<SectionAlias> ChildSectionAliases { get; }
+
         public IReadOnlyList<FieldAlias> FieldAliases { get; }
         public IReadOnlyList<string>? QueryHints { get; }
         public string? DisplayName { get; }
@@ -16,7 +16,6 @@ namespace Assistant.Core.Model
         public SectionDescriptor(
             SectionAlias sectionAlias,
             SectionAlias? parentSectionAlias,
-            IReadOnlyList<SectionAlias> childSectionAliases,
             IReadOnlyList<FieldAlias> fieldAliases,
             IReadOnlyList<string>? queryHints,
             string? displayName,
@@ -24,8 +23,9 @@ namespace Assistant.Core.Model
         {
             SectionAlias = sectionAlias;
             ParentSectionAlias = parentSectionAlias;
-            ChildSectionAliases = childSectionAliases ?? throw new ArgumentNullException(nameof(childSectionAliases));
+
             FieldAliases = fieldAliases ?? throw new ArgumentNullException(nameof(fieldAliases));
+
             QueryHints = queryHints;
             DisplayName = displayName;
             OrderIndex = orderIndex;
