@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using Assistant.Core.Model;
 
-namespace Assistant.Core.Context
+namespace Assistant.Dependencies.Context
 {
     public sealed class SectionQueryBuilder
     {
