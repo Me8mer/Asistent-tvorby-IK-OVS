@@ -137,8 +137,7 @@ namespace Assistant.Pipeline.Initiation
             (string webText, IReadOnlyList<string> references) =
                 contextPack.GetContextText(sectionAlias.Value);
 
-            string combinedContext = CombineContext(sectionContextText, webText);
-
+            string combinedContext =  webText; // quick solution remove sectionContextText later
             foreach (FieldAlias alias in sectionFieldAliases)
             {
                 FieldNode fieldNode = model.GetField(alias);

@@ -18,6 +18,7 @@ using Assistant.Dependencies.Context.Web.Retrieval;
 using Assistant.Core.Model;
 using Assistant.Pipeline.Initiation;
 using Microsoft.Extensions.DependencyInjection;
+using Assistant.Parser.OpenXml;
 
 
 ServiceCollection services = new();
@@ -65,6 +66,7 @@ services.AddSingleton<OfficeCacheStore>(_ =>
 services.AddSingleton<WebCorpusBuilder>();
 services.AddSingleton<WebChunkCorpusBuilder>();
 services.AddSingleton<OfficeWebContextProvider>();
+services.AddSingleton<ITemplateSdtParser, OpenXmlTemplateSdtParser>();
 
 services.AddSingleton(new WebSectionPackRetriever.Options
 {

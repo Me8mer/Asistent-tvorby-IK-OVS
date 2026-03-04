@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Assistant.Core.Model;
 using Assistant.Pipeline.Initiation;
 using Microsoft.Extensions.DependencyInjection;
+using Assistant.Parser.OpenXml;
 
 public static class PrefaceBasicInfoSectionExperiment
 {
@@ -17,87 +18,69 @@ public static class PrefaceBasicInfoSectionExperiment
         // Office website used as web context source (crawler + retrieval).
         // You can override this in your runner by passing a different URL.
         string officeIdentifier = "https://www.mmr.gov.cz/";
+        string templateVersion = "preface-basic-info.v01";
 
-        // 1) Section field aliases
-        FieldAlias[] sectionFieldAliases =
+        var definitionProvider = new HardcodedPrefaceBasicInfoDefinitionProvider();
+
+        if (!definitionProvider.TryGetDefinition(templateVersion, out TemplateDefinition definition, out string? definitionError))
         {
-            PrefaceBasicInfoAliases.OrgName,
-            PrefaceBasicInfoAliases.OrgIco,
-            PrefaceBasicInfoAliases.OrgType,
-            PrefaceBasicInfoAliases.OrgAddress
-        };
+            throw new InvalidOperationException(definitionError);
+        }
 
-        // 2) Field descriptors (used by prompt builder)
-        IReadOnlyList<FieldDescriptor> descriptors =
-            PrefaceBasicInfoDescriptors.Create();
+        FieldAlias[] sectionFieldAliases = definition.FieldAliases.ToArray();
 
-        Dictionary<FieldAlias, FieldDescriptor> descriptorsByAlias =
-            descriptors.ToDictionary(descriptor => descriptor.Alias);
+        ITemplateSdtParser parser =
+        services.GetRequiredService<ITemplateSdtParser>();
 
-        // 3) Section graph (used by SectionQueryBuilder inside CompositeContextProvider)
-        SectionAlias rootSectionAlias = new("IKOVS_ROOT");
-        SectionAlias basicInfoSectionAlias = new(PrefaceBasicInfoAliases.Section.Value);
+        string pathToDocx = "working_template.docx";
 
-        List<SectionDescriptor> sections = new()
+        using FileStream stream = File.OpenRead(pathToDocx);
+
+        TemplateInstance instance =
+            await parser.ParseAsync(stream, CancellationToken.None);
+
+        Console.WriteLine("=== PARSED SDTs ===");
+
+        foreach (FieldBinding binding in instance.Bindings)
         {
-            new SectionDescriptor(
-                sectionAlias: rootSectionAlias,
-                parentSectionAlias: null,
-                fieldAliases: Array.Empty<FieldAlias>(),
-                queryHints: null,
-                displayName: "IKOVS",
-                orderIndex: 0),
+            Console.WriteLine($"Alias: {binding.Alias.Value}");
+            Console.WriteLine($"  SDT Id: {binding.SdtId}");
+            Console.WriteLine($"  Occurrence: {binding.OccurrenceIndex}");
+            Console.WriteLine($"  ContentKind: {binding.ContentKind}");
+            Console.WriteLine();
+        }
 
-            new SectionDescriptor(
-                sectionAlias: basicInfoSectionAlias,
-                parentSectionAlias: rootSectionAlias,
-                fieldAliases: sectionFieldAliases,
-                // These query hints are intentionally Czech, because the office websites
-                // are Czech, and the query builder should include them.
-                queryHints: new[]
-                {
-                    "základní údaje",
-                    "kontakt",
-                    "IČO",
-                    "adresa sídla",
-                    "Ministerstvo pro místní rozvoj"
-                },
-                displayName: "Základní údaje",
-                orderIndex: 10)
-        };
+        if (instance.Diagnostics.Count > 0)
+        {
+            Console.WriteLine("=== PARSER DIAGNOSTICS ===");
 
-        // 4) Fake bindings (simulated parsed document locations)
-        Dictionary<FieldAlias, FieldBinding> bindingsByAlias =
-            sectionFieldAliases.ToDictionary(alias => alias, CreateMockBinding);
+            foreach (SdtParseDiagnostic diagnostic in instance.Diagnostics)
+            {
+                Console.WriteLine($"{diagnostic.Code}: {diagnostic.Message}");
+            }
 
-        // 5) Internal model runtime = simulated parsed document + services
-        var runtimeBuilder = new InternalModelRuntimeBuilder();
+            Console.WriteLine();
+        }
 
-        InternalModelRuntime runtime = runtimeBuilder.Build(
-            templateVersion: "preface-basic-info.v01",
-            aliases: sectionFieldAliases,
-            bindingsByAlias: bindingsByAlias,
-            descriptorsByAlias: descriptorsByAlias,
-            sections: sections);
+        var runtimeFactory = new TemplateRuntimeFactory(new InternalModelRuntimeBuilder());
 
+        TemplateRuntimeBuildResult buildResult = runtimeFactory.BuildRuntime(instance, definition);
+
+        if (!buildResult.IsSuccess)
+        {
+            foreach (SdtParseDiagnostic diagnostic in buildResult.Diagnostics)
+            {
+                Console.WriteLine($"{diagnostic.Code}: {diagnostic.Message}");
+            }
+
+            throw new InvalidOperationException("Failed to build InternalModelRuntime.");
+        }
+
+        InternalModelRuntime runtime = buildResult.Runtime!;
 
         // 6) Section context (raw text from the document)
         // This is combined with the retrieved web context by the orchestrator.
-        string sectionContextText = """
-        Základní údaje Informační koncepce pro <<Ministerstvo pro místní rozvoj České republiky>>
-
-        Název orgánu veřejné správy
-        <<MISSING>>
-
-        IČO
-        <<MISSING>>
-
-        Typ organizace
-        Orgán státní správy
-
-        Adresa sídla
-        <<MISSING>>
-        """;
+        string sectionContextText = "";
 
         // 7) Run AI for the whole section with web context injection
         await orchestrator.GenerateSectionAsync(

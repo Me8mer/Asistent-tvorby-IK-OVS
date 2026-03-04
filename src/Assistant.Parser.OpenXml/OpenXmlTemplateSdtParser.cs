@@ -11,23 +11,26 @@ namespace Assistant.Parser.OpenXml
 {
     public sealed class OpenXmlTemplateSdtParser : ITemplateSdtParser
     {
-        public Task<SdtParseResult> ParseAsync(Stream docxStream, CancellationToken cancellationToken = default)
+        public Task<TemplateInstance> ParseAsync(Stream docxStream, CancellationToken cancellationToken = default)
         {
             var bindings = new List<FieldBinding>();
             var diagnostics = new List<SdtParseDiagnostic>();
-
             var occurrenceByAlias = new Dictionary<string, int>();
+
+            string? templateVersion = null;
 
             using (WordprocessingDocument wordDocument = WordprocessingDocument.Open(docxStream, false))
             {
                 Body? body = wordDocument.MainDocumentPart?.Document?.Body;
+
                 if (body is null)
                 {
                     diagnostics.Add(new SdtParseDiagnostic(
                         code: "DOCX_NO_BODY",
                         message: "Main document body is missing.",
                         sdtId: null));
-                    return Task.FromResult(new SdtParseResult(bindings, diagnostics));
+
+                    return Task.FromResult(new TemplateInstance(templateVersion, bindings, diagnostics));
                 }
 
                 IEnumerable<SdtElement> allSdts = body.Descendants<SdtElement>();
@@ -68,7 +71,7 @@ namespace Assistant.Parser.OpenXml
                 }
             }
 
-            return Task.FromResult(new SdtParseResult(bindings, diagnostics));
+            return Task.FromResult(new TemplateInstance(templateVersion, bindings, diagnostics));
         }
 
         private static string? ReadSdtId(SdtElement sdtElement)
@@ -98,5 +101,4 @@ namespace Assistant.Parser.OpenXml
             return nextIndex;
         }
     }
-
 }
