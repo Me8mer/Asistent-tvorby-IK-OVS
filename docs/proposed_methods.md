@@ -1,4 +1,5 @@
 # Methods Overview
+
 ---
 
 ## 1. General Methods
@@ -107,3 +108,70 @@ Remaining fields stay empty and can be filled later.
 Compared directly with Per Field Question Answer.
 
 ---
+
+## 3. Chatbot Prefill – Evaluation Methods
+
+These methods define how the chatbot collects values for `chatbot_fill` fields using the LLM.
+
+---
+
+### 3.1 Method D: Per Field Question Answer
+
+#### What it does
+
+The chatbot fills fields one at a time.
+At any moment there is a single active field. For that field, the LLM formulates a focused question based on field metadata and then interprets the user’s answer into the correct field value.
+
+If the interpreted value fails validation or is ambiguous, the chatbot asks a short follow up question for the same field until the value is valid or the field is explicitly left unresolved.
+
+This represents a strictly field driven interview flow and serves as the baseline conversational method. The orchestration remains aligned with field level processing and does not require section level coordination.
+
+#### Evaluation
+
+This method is used as the baseline chatbot strategy.
+It is compared directly with Transcript Assisted Per Field Extraction.
+
+Primary metrics:
+
+* total number of model calls required to fill the same set of `chatbot_fill` fields
+* completion rate and validation success rate
+* number of clarification turns per field
+* total user interaction steps
+
+---
+
+### 3.2 Method F: Transcript Assisted Per Field Extraction
+
+#### What it does
+
+This method preserves the same field driven interview flow as Method D, but adds a transcript based pre step before asking a question.
+
+Whenever a new field becomes active, the system first attempts to infer the field value from the conversation transcript collected so far.
+
+For each active field:
+
+1. The LLM receives the field specification and the current transcript.
+2. If the value can be inferred with sufficient confidence, the system either fills the field directly or asks for confirmation.
+3. If the LLM returns `UNKNOWN` or low confidence, the chatbot proceeds with the normal question answer step as defined in Method D.
+
+The key constraint is that this method does not attempt global multi field extraction.
+It only attempts to resolve the currently active field.
+
+This keeps the orchestration simple and limits unintended side effects while still allowing reuse of previously stated information.
+
+#### Evaluation
+
+This method is compared directly with Method D in order to quantify efficiency gains versus additional model cost.
+
+Primary metrics:
+
+* total number of model calls
+
+  * calls used for transcript extraction
+  * calls used for asking questions and interpreting answers
+* number of user questions avoided due to successful transcript inference
+* number of confirmations replacing full questions
+* completion rate and validation success rate
+* total user interaction steps
+
+The goal is to measure the tradeoff between additional extraction prompts and reduction of interactive questioning, and determine whether transcript assisted inference provides measurable benefit for non generic fields.

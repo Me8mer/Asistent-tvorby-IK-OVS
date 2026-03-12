@@ -1,10 +1,9 @@
 Najbližšie ciele
 
-Rozlíšenie typu kontextu
-Zaviesť explicitné pravidlá pre placeholdery (napr. <<MISSING>>) a upraviť prompt tak, aby ich model nepovažoval za autoritatívne hodnoty.
+- Dokončiť parsovanie Šablóny. Pridať content controls (SDTs) do ďalších sekcíí šablóny.
 
-Práca s viacerými zdrojmi kontextu
-Oddeliť kontext šablóny od autoritatívneho kontextu (napr. hlavička dokumentu, metadata, externé zdroje).
+- Zlepšenie context retrieval
 
-Experimenty kvality generovania
-Porovnávať správanie modelu pri rôznych typoch kontextu, rozsahoch kontextu a inštrukciách – ako podklad pre hodnotiacu časť práce.
+- Výpočet dependency grafu
+
+- Práca na AI metodach

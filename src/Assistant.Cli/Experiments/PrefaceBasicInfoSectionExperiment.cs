@@ -12,6 +12,8 @@ public static class PrefaceBasicInfoSectionExperiment
 {
     public static async Task RunAsync(ServiceProvider services)
     {
+        LogStep("Starting Preface Basic Info section experiment.");
+
         ContextAwareInitiationOrchestrator orchestrator =
             services.GetRequiredService<ContextAwareInitiationOrchestrator>();
 
@@ -20,12 +22,16 @@ public static class PrefaceBasicInfoSectionExperiment
         string officeIdentifier = "https://www.mmr.gov.cz/";
         string templateVersion = "preface-basic-info.v01";
 
+        LogStep($"Loading template definition '{templateVersion}'.");
+
         var definitionProvider = new HardcodedPrefaceBasicInfoDefinitionProvider();
 
         if (!definitionProvider.TryGetDefinition(templateVersion, out TemplateDefinition definition, out string? definitionError))
         {
             throw new InvalidOperationException(definitionError);
         }
+
+        LogStep("Template definition loaded successfully.");
 
         FieldAlias[] sectionFieldAliases = definition.FieldAliases.ToArray();
 
@@ -34,10 +40,16 @@ public static class PrefaceBasicInfoSectionExperiment
 
         string pathToDocx = "working_template.docx";
 
+        LogStep($"Opening document '{pathToDocx}'.");
+
         using FileStream stream = File.OpenRead(pathToDocx);
+
+        LogStep("Parsing SDTs from document. This can take a while for large files.");
 
         TemplateInstance instance =
             await parser.ParseAsync(stream, CancellationToken.None);
+
+        LogStep($"Parsing finished. Parsed {instance.Bindings.Count} binding(s), diagnostics: {instance.Diagnostics.Count}.");
 
         Console.WriteLine("=== PARSED SDTs ===");
 
@@ -64,6 +76,8 @@ public static class PrefaceBasicInfoSectionExperiment
 
         var runtimeFactory = new TemplateRuntimeFactory(new InternalModelRuntimeBuilder());
 
+        LogStep("Building Internal Model from parsed template and definition.");
+
         TemplateRuntimeBuildResult buildResult = runtimeFactory.BuildRuntime(instance, definition);
 
         if (!buildResult.IsSuccess)
@@ -78,11 +92,15 @@ public static class PrefaceBasicInfoSectionExperiment
 
         InternalModelRuntime runtime = buildResult.Runtime!;
 
+        LogStep("Internal Model build successful.");
+
         // 6) Section context (raw text from the document)
         // This is combined with the retrieved web context by the orchestrator.
         string sectionContextText = "";
 
         // 7) Run AI for the whole section with web context injection
+        LogStep("Starting AI section generation with web context retrieval.");
+
         await orchestrator.GenerateSectionAsync(
             internalModelRuntime: runtime,
             sectionFieldAliases: sectionFieldAliases,
@@ -90,8 +108,12 @@ public static class PrefaceBasicInfoSectionExperiment
             sectionContextText: sectionContextText,
             cancellationToken: CancellationToken.None);
 
+        LogStep("AI section generation completed.");
+
         // 8) Print results
         PrintResults(runtime.Model, sectionFieldAliases);
+
+        LogStep("Finished.");
     }
 
     private static FieldBinding CreateMockBinding(FieldAlias alias)
@@ -130,5 +152,10 @@ public static class PrefaceBasicInfoSectionExperiment
             Console.WriteLine($"  Explanation: {lastProposal.Explanation}");
             Console.WriteLine();
         }
+    }
+
+    private static void LogStep(string message)
+    {
+        Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] {message}");
     }
 }
