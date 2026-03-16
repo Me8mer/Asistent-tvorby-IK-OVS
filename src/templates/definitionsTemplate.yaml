@@ -8,14 +8,14 @@ templates:
       parent: null        # root section has no parent
       query_hints: []     # optional list of search hints for web context
       notes: ""           # optional free-form notes
-    - alias: "IKOVS_PREFACE_IDENTIFICATION"
-      label_cs: "Identifikace Informační koncepce"
-      parent: "IKOVS_PREFACE"
-      query_hints: []
-      notes: ""
+    # - alias: "IKOVS_PREFACE_IDENTIFICATION"
+    #   label_cs: "Identifikace Informační koncepce"
+    #   parent: "IKOVS_PREFACE"
+    #   query_hints: []
+    #   notes: ""
     - alias: "IKOVS_PREFACE_BASIC-INFO"
       label_cs: "Základní údaje"
-      parent: "IKOVS_PREFACE_IDENTIFICATION"
+      parent: "IKOVS_PREFACE"
       query_hints:
         - "kontakt"
         - "adresa"

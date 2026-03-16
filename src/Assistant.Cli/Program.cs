@@ -79,7 +79,12 @@ services.AddSingleton(new WebSectionPackRetriever.Options
     MaximumChunks = 15,
     MaximumTotalCharacters = 5000,
     MaximumChunksPerUrl = 10,
-    MinimumTokenLength = 3
+    MinimumTokenLength = 3,
+    EnableDebugLogging = string.Equals(
+        Environment.GetEnvironmentVariable("ASSISTANT_RETRIEVER_DEBUG"),
+        "1",
+        StringComparison.Ordinal),
+    DebugTopCandidatesToPrint = 8
 });
 
 services.AddSingleton<WebSectionPackRetriever>();
