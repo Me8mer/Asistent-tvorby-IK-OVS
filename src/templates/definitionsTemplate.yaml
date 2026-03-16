@@ -1,0 +1,58 @@
+version: 1    # YAML schema version
+templates:
+  - key: "preface-basic-info.v01"
+    label: "IKOVS Preface – Basic Info"
+    sections:
+    - alias: "IKOVS_PREFACE"
+      label_cs: "Úvod"
+      parent: null        # root section has no parent
+      query_hints: []     # optional list of search hints for web context
+      notes: ""           # optional free-form notes
+    - alias: "IKOVS_PREFACE_IDENTIFICATION"
+      label_cs: "Identifikace Informační koncepce"
+      parent: "IKOVS_PREFACE"
+      query_hints: []
+      notes: ""
+    - alias: "IKOVS_PREFACE_BASIC-INFO"
+      label_cs: "Základní údaje Informační koncepce"
+      parent: "IKOVS_PREFACE_IDENTIFICATION"
+      query_hints:
+        - "základní údaje"
+        - "kontakt"
+        - "IČO"
+        - "adresa sídla"
+        - "Ministerstvo pro místní rozvoj"
+      notes: "" 
+    fields:
+    - alias: "IKOVS_PREFACE_BASIC-INFO_ORG-NAME"
+      parent: "IKOVS_PREFACE_BASIC-INFO"
+      label_cs: "Název orgánu veřejné správy"
+      fill:
+        deterministic: false
+        ai: false
+        chatbot: false
+        init: false
+      required: false           # optional; sets IsRequired in FieldDescriptor
+      value_type: "string"      # optional; helps value‑hint logic (e.g. "date", "number")
+      depends_on: []            # list of field aliases this field depends on
+      instructions: ""          # optional human instructions for the UI
+      query_hints: []           # optional field‑level query hints
+      notes: ""                 # optional free text
+    - alias: "IKOVS_PREFACE_BASIC-INFO_ORG-ICO"
+      parent: "IKOVS_PREFACE_BASIC-INFO"
+      label_cs: "IČO"
+      fill:
+        deterministic: false
+        ai: false
+        chatbot: false
+        init: false
+      required: false
+      value_type: "string"
+      depends_on: []
+      instructions: ""
+      query_hints: []
+      notes: ""
+  - key: "template.v02"
+    label: "Template v02"
+    sections: []
+    fields: []
