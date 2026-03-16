@@ -15,13 +15,19 @@ using Assistant.Dependencies.Context.Web.Crawling.Apify;
 using Assistant.Dependencies.Context.Web.Processing;
 using Assistant.Dependencies.Context.Web.Storage;
 using Assistant.Dependencies.Context.Web.Retrieval;
+using Assistant.Dependencies.TemplateDefinitions;
 using Assistant.Core.Model;
 using Assistant.Pipeline.Initiation;
 using Microsoft.Extensions.DependencyInjection;
 using Assistant.Parser.OpenXml;
+using Microsoft.Extensions.Configuration;
+using Assistant.Cli.Configuration;
 
 
 ServiceCollection services = new();
+
+var apiKeys = ConfigurationLoader.Load();
+ConfigurationLoader.Validate(apiKeys);
 
 // routing
 services.AddSingleton(new RoutingDefaults(
@@ -45,7 +51,7 @@ services.AddHttpClient();
 // Apify options 
 services.AddSingleton(new ApifyCrawlerOptions
 {
-    ApiToken = Environment.GetEnvironmentVariable("APIFY_TOKEN") ?? "",
+    ApiToken = apiKeys.ApifyApiToken,
     ActorId = "apify~website-content-crawler",
     MaxCrawlDepth = 2,
     MaxCrawlPages = 50,
@@ -81,19 +87,54 @@ services.AddSingleton<WebSectionPackRetriever>();
 services.AddSingleton<CompositeContextProvider>();
 services.AddSingleton<ContextAwareInitiationOrchestrator>();
 
+string templateDefinitionsPath = ResolveTemplateDefinitionsPath();
+
+services.AddSingleton(_ => new TemplateDefinitionProvider(templateDefinitionsPath));
+services.AddSingleton<ITemplateDefinitionProvider>(sp =>
+    sp.GetRequiredService<TemplateDefinitionProvider>());
+
 
 services.AddSingleton<IRoutingPolicy, DefaultRoutingPolicy>();
 services.AddSingleton<IPromptBuilder, MinimalPromptBuilder>();
 services.AddSingleton<ILlmProvider>(_ =>
-    new OpenAiChatLlmProvider("gpt-5-nano"));
+    new OpenAiChatLlmProvider(
+        modelName: "gpt-5-nano",
+        apiKey: apiKeys.OpenAiApiKey));
 services.AddSingleton<IProposalParser>(_ =>
     new StrictJsonProposalParser());
 services.AddSingleton<IProposalGenerator, DefaultProposalGenerator>();
-
-services.AddSingleton<CompositeContextProvider>();
-services.AddSingleton<ContextAwareInitiationOrchestrator>();
 
 ServiceProvider provider = services.BuildServiceProvider();
 
 // run ONE experiment
 await PrefaceBasicInfoSectionExperiment.RunAsync(provider);
+
+static string ResolveTemplateDefinitionsPath()
+{
+    string? currentDirectory = AppContext.BaseDirectory;
+
+    while (!string.IsNullOrWhiteSpace(currentDirectory))
+    {
+        string candidatePath = Path.Combine(
+            currentDirectory,
+            "src",
+            "templates",
+            "definitionsTemplate.yaml");
+
+        if (File.Exists(candidatePath))
+        {
+            return candidatePath;
+        }
+
+        DirectoryInfo? parentDirectory = Directory.GetParent(currentDirectory);
+        if (parentDirectory is null)
+        {
+            break;
+        }
+
+        currentDirectory = parentDirectory.FullName;
+    }
+
+    throw new FileNotFoundException(
+        "Could not locate src/templates/definitionsTemplate.yaml starting from the application base directory.");
+}

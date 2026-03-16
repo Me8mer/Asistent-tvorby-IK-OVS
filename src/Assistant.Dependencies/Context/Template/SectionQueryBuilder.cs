@@ -27,19 +27,24 @@ namespace Assistant.Dependencies.Context
 
         public SectionQuery BuildSectionQuery(
             SectionAlias sectionAlias,
-            IReadOnlyDictionary<SectionAlias, SectionDescriptor> sectionsByAlias)
+            InternalModel internalModel)
         {
+            if (internalModel is null)
+                throw new ArgumentNullException(nameof(internalModel));
+
+            IReadOnlyDictionary<SectionAlias, SectionDescriptor> sectionsByAlias = internalModel.SectionsByAlias;
+
             if (!sectionsByAlias.TryGetValue(sectionAlias, out SectionDescriptor? section))
-                throw new ArgumentException($"Section alias '{sectionAlias}' is not present in the provided map.", nameof(sectionAlias));
+                throw new ArgumentException($"Section alias '{sectionAlias}' is not present in the provided model.", nameof(sectionAlias));
 
             var terms = new List<string>(capacity: 64);
             var seenTerms = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
             AddSectionPathTerms(section, sectionsByAlias, terms, seenTerms);
 
-            AddFieldTerms(section.FieldAliases, terms, seenTerms);
-
             AddHintTerms(section.QueryHints, terms, seenTerms);
+
+            AddFieldTerms(section.FieldAliases, internalModel, terms, seenTerms);
 
             string queryText = BuildQueryTextWithLimit(terms, options.MaximumTotalCharacters);
 
@@ -62,8 +67,11 @@ namespace Assistant.Dependencies.Context
                 string displayOrDerived = GetDisplayOrDerivedName(pathSection.DisplayName, pathSection.SectionAlias.Value);
                 AddTerm(displayOrDerived, terms, seenTerms);
 
-                string aliasDerived = DeriveTermsFromAlias(pathSection.SectionAlias.Value);
-                AddTerm(aliasDerived, terms, seenTerms);
+                if (string.IsNullOrWhiteSpace(pathSection.DisplayName))
+                {
+                    string aliasDerived = DeriveTermsFromAlias(pathSection.SectionAlias.Value);
+                    AddTerm(aliasDerived, terms, seenTerms);
+                }
             }
         }
 
@@ -98,6 +106,7 @@ namespace Assistant.Dependencies.Context
 
         private void AddFieldTerms(
             IReadOnlyList<FieldAlias> fieldAliases,
+            InternalModel internalModel,
             List<string> terms,
             HashSet<string> seenTerms)
         {
@@ -108,10 +117,35 @@ namespace Assistant.Dependencies.Context
                 if (addedFieldTerms >= options.MaximumFieldTerms)
                     break;
 
-                string derived = DeriveTermsFromAlias(fieldAlias.Value);
+                int termCountBefore = terms.Count;
 
-                if (AddTerm(derived, terms, seenTerms))
+                if (internalModel.TryGetField(fieldAlias, out FieldNode fieldNode) &&
+                    fieldNode.Descriptor is FieldDescriptor descriptor)
+                {
+                    AddLocalizedFieldTerms(descriptor, terms, seenTerms);
+                }
+                else
+                {
+                    AddTerm(DeriveTermsFromAlias(fieldAlias.Value), terms, seenTerms);
+                }
+
+                if (terms.Count > termCountBefore)
                     addedFieldTerms++;
+            }
+        }
+
+        private static void AddLocalizedFieldTerms(
+            FieldDescriptor descriptor,
+            List<string> terms,
+            HashSet<string> seenTerms)
+        {
+            AddTerm(GetDisplayOrDerivedName(descriptor.DisplayName, descriptor.Alias.Value), terms, seenTerms);
+
+            AddHintTerms(descriptor.QueryHints, terms, seenTerms);
+
+            if (string.IsNullOrWhiteSpace(descriptor.DisplayName))
+            {
+                AddTerm(DeriveTermsFromAlias(descriptor.Alias.Value), terms, seenTerms);
             }
         }
 
@@ -199,7 +233,7 @@ namespace Assistant.Dependencies.Context
                     break;
 
                 if (builder.Length > 0)
-                    builder.Append('\n');
+                    builder.Append(' ');
 
                 builder.Append(term);
             }

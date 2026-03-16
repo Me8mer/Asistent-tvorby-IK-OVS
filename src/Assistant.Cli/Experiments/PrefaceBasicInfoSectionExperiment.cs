@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Assistant.Core.Model;
+using Assistant.Dependencies.TemplateDefinitions;
 using Assistant.Pipeline.Initiation;
 using Microsoft.Extensions.DependencyInjection;
 using Assistant.Parser.OpenXml;
@@ -20,25 +21,21 @@ public static class PrefaceBasicInfoSectionExperiment
         // Office website used as web context source (crawler + retrieval).
         // You can override this in your runner by passing a different URL.
         string officeIdentifier = "https://www.mmr.gov.cz/";
-        string templateVersion = "preface-basic-info.v01";
 
-        LogStep($"Loading template definition '{templateVersion}'.");
+        ITemplateDefinitionProvider definitionProvider =
+            services.GetRequiredService<ITemplateDefinitionProvider>();
 
-        var definitionProvider = new HardcodedPrefaceBasicInfoDefinitionProvider();
+        LogStep($"Resolved template definition provider: {definitionProvider.GetType().FullName}.");
 
-        if (!definitionProvider.TryGetDefinition(templateVersion, out TemplateDefinition definition, out string? definitionError))
+        if (definitionProvider is TemplateDefinitionProvider yamlDefinitionProvider)
         {
-            throw new InvalidOperationException(definitionError);
+            PrintProviderDiagnostics(yamlDefinitionProvider);
         }
-
-        LogStep("Template definition loaded successfully.");
-
-        FieldAlias[] sectionFieldAliases = definition.FieldAliases.ToArray();
 
         ITemplateSdtParser parser =
         services.GetRequiredService<ITemplateSdtParser>();
 
-        string pathToDocx = "working_template.docx";
+        string pathToDocx = ResolveWorkingTemplatePath();
 
         LogStep($"Opening document '{pathToDocx}'.");
 
@@ -50,6 +47,20 @@ public static class PrefaceBasicInfoSectionExperiment
             await parser.ParseAsync(stream, CancellationToken.None);
 
         LogStep($"Parsing finished. Parsed {instance.Bindings.Count} binding(s), diagnostics: {instance.Diagnostics.Count}.");
+
+        TemplateDefinition definition = ResolveDefinition(definitionProvider, instance);
+
+        LogStep(
+            $"Template definition '{definition.TemplateVersion}' selected. Sections: {definition.Sections.Count}, fields: {definition.FieldAliases.Count}.");
+
+        PrintDefinitionSummary(definition);
+
+        IReadOnlyList<SectionDescriptor> sectionsToGenerate = definition.Sections
+            .Where(section => section.FieldAliases.Count > 0)
+            .OrderBy(section => section.OrderIndex ?? int.MaxValue)
+            .ToArray();
+
+        LogStep($"Selected {sectionsToGenerate.Count} section(s) with field bindings for generation.");
 
         Console.WriteLine("=== PARSED SDTs ===");
 
@@ -94,62 +105,220 @@ public static class PrefaceBasicInfoSectionExperiment
 
         LogStep("Internal Model build successful.");
 
-        // 6) Section context (raw text from the document)
-        // This is combined with the retrieved web context by the orchestrator.
-        string sectionContextText = "";
+        foreach (SectionDescriptor section in sectionsToGenerate)
+        {
+            string sectionContextText = BuildSectionContext(section, definition);
+            FieldAlias[] sectionFieldAliases = section.FieldAliases.ToArray();
 
-        // 7) Run AI for the whole section with web context injection
-        LogStep("Starting AI section generation with web context retrieval.");
+            LogStep(
+                $"Starting generation for section '{section.SectionAlias.Value}' with {sectionFieldAliases.Length} field(s).");
 
-        await orchestrator.GenerateSectionAsync(
-            internalModelRuntime: runtime,
-            sectionFieldAliases: sectionFieldAliases,
-            officeIdentifier: officeIdentifier,
-            sectionContextText: sectionContextText,
-            cancellationToken: CancellationToken.None);
+            await orchestrator.GenerateSectionAsync(
+                internalModelRuntime: runtime,
+                sectionFieldAliases: sectionFieldAliases,
+                officeIdentifier: officeIdentifier,
+                sectionContextText: sectionContextText,
+                cancellationToken: CancellationToken.None);
 
-        LogStep("AI section generation completed.");
+            LogStep($"Section '{section.SectionAlias.Value}' generation completed.");
+        }
 
-        // 8) Print results
-        PrintResults(runtime.Model, sectionFieldAliases);
+        PrintResults(runtime.Model, definition);
 
         LogStep("Finished.");
     }
 
-    private static FieldBinding CreateMockBinding(FieldAlias alias)
+    private static TemplateDefinition ResolveDefinition(
+        ITemplateDefinitionProvider definitionProvider,
+        TemplateInstance instance)
     {
-        return new FieldBinding(
-            alias: alias,
-            sdtId: null,
-            occurrenceIndex: null,
-            locationHint: "HARDCODED_PREFACE_BASIC_INFO",
-            contentKind: FieldContentKind.TableCell);
+        string[] parsedAliases = instance.Bindings
+            .Select(binding => binding.Alias.Value)
+            .Distinct(StringComparer.Ordinal)
+            .ToArray();
+
+        if (definitionProvider is TemplateDefinitionProvider yamlDefinitionProvider)
+        {
+            TemplateDefinition? bestDefinition = yamlDefinitionProvider.Definitions
+                .Select(candidateDefinition => new
+                {
+                    Definition = candidateDefinition,
+                    MatchedAliases = parsedAliases.Count(alias =>
+                        candidateDefinition.FieldAliases.Any(fieldAlias => string.Equals(fieldAlias.Value, alias, StringComparison.Ordinal))),
+                    UnknownAliases = parsedAliases.Count(alias =>
+                        candidateDefinition.FieldAliases.All(fieldAlias => !string.Equals(fieldAlias.Value, alias, StringComparison.Ordinal)))
+                })
+                .OrderBy(candidate => candidate.UnknownAliases)
+                .ThenByDescending(candidate => candidate.MatchedAliases)
+                .Select(candidate => candidate.Definition)
+                .FirstOrDefault();
+
+            if (bestDefinition is null)
+            {
+                throw new InvalidOperationException("The template definition provider did not load any definitions.");
+            }
+
+            return bestDefinition;
+        }
+
+        string? requestedTemplateVersion = Environment.GetEnvironmentVariable("ASSISTANT_TEMPLATE_VERSION");
+
+        if (string.IsNullOrWhiteSpace(requestedTemplateVersion))
+        {
+            throw new InvalidOperationException(
+                "Template version could not be resolved automatically for the current provider. Set ASSISTANT_TEMPLATE_VERSION.");
+        }
+
+        if (!definitionProvider.TryGetDefinition(
+                requestedTemplateVersion,
+                out TemplateDefinition resolvedDefinition,
+                out string? error))
+        {
+            throw new InvalidOperationException(error);
+        }
+
+        return resolvedDefinition;
+    }
+
+    private static string BuildSectionContext(
+        SectionDescriptor section,
+        TemplateDefinition definition)
+    {
+        List<string> contextLines = new();
+
+        if (!string.IsNullOrWhiteSpace(section.DisplayName))
+        {
+            contextLines.Add($"Sekce: {section.DisplayName}");
+        }
+
+        if (section.QueryHints is { Count: > 0 })
+        {
+            contextLines.Add($"Nápovědy pro dotaz: {string.Join(", ", section.QueryHints)}");
+        }
+
+        IReadOnlyList<string> fieldNames = section.FieldAliases
+            .Select(alias => definition.DescriptorsByAlias[alias].DisplayName ?? alias.Value)
+            .ToArray();
+
+        if (fieldNames.Count > 0)
+        {
+            contextLines.Add($"Pole v sekci: {string.Join(", ", fieldNames)}");
+        }
+
+        return string.Join(Environment.NewLine, contextLines);
+    }
+
+    private static string ResolveWorkingTemplatePath()
+    {
+        string? currentDirectory = AppContext.BaseDirectory;
+
+        while (!string.IsNullOrWhiteSpace(currentDirectory))
+        {
+            string[] candidates =
+            {
+                Path.Combine(currentDirectory, "working_template.docx"),
+                Path.Combine(currentDirectory, "src", "working_template.docx"),
+                Path.Combine(currentDirectory, "docs", "working_template.docx")
+            };
+
+            foreach (string candidatePath in candidates)
+            {
+                if (File.Exists(candidatePath))
+                {
+                    return candidatePath;
+                }
+            }
+
+            DirectoryInfo? parentDirectory = Directory.GetParent(currentDirectory);
+            if (parentDirectory is null)
+            {
+                break;
+            }
+
+            currentDirectory = parentDirectory.FullName;
+        }
+
+        throw new FileNotFoundException(
+            "Could not locate working_template.docx starting from the application base directory.");
+    }
+
+    private static void PrintProviderDiagnostics(TemplateDefinitionProvider provider)
+    {
+        Console.WriteLine("=== TEMPLATE DEFINITION PROVIDER ===");
+        Console.WriteLine($"Provider: {provider.GetType().FullName}");
+        Console.WriteLine($"SourcePath: {provider.SourcePath}");
+        Console.WriteLine($"Warnings: {provider.Warnings.Count}");
+
+        foreach (TemplateDefinitionWarning warning in provider.Warnings)
+        {
+            Console.WriteLine($"  {warning}");
+        }
+
+        Console.WriteLine();
+    }
+
+    private static void PrintDefinitionSummary(TemplateDefinition definition)
+    {
+        Console.WriteLine("=== TEMPLATE DEFINITION SUMMARY ===");
+        Console.WriteLine($"TemplateVersion: {definition.TemplateVersion}");
+        Console.WriteLine($"Sections: {definition.Sections.Count}");
+
+        foreach (SectionDescriptor section in definition.Sections)
+        {
+            string parentAlias = section.ParentSectionAlias?.Value ?? "<root>";
+
+            Console.WriteLine($"  Section: {section.SectionAlias.Value}");
+            Console.WriteLine($"    Parent: {parentAlias}");
+            Console.WriteLine($"    DisplayName: {section.DisplayName ?? "<none>"}");
+            Console.WriteLine($"    FieldCount: {section.FieldAliases.Count}");
+        }
+
+        Console.WriteLine($"Fields: {definition.FieldAliases.Count}");
+
+        foreach (FieldAlias alias in definition.FieldAliases)
+        {
+            FieldDescriptor descriptor = definition.DescriptorsByAlias[alias];
+            Console.WriteLine($"  Field: {alias.Value}");
+            Console.WriteLine($"    DisplayName: {descriptor.DisplayName ?? "<none>"}");
+            Console.WriteLine($"    FillModes: {descriptor.FillModes}");
+            Console.WriteLine($"    Required: {descriptor.IsRequired}");
+            Console.WriteLine($"    ValueType: {descriptor.ValueTypeHint ?? "<none>"}");
+        }
+
+        Console.WriteLine();
     }
 
     private static void PrintResults(
         InternalModel model,
-        IEnumerable<FieldAlias> aliases)
+        TemplateDefinition definition)
     {
-        Console.WriteLine("=== PREFACE BASIC INFO RESULTS ===");
+        Console.WriteLine("=== TEMPLATE RESULTS ===");
 
-        foreach (FieldAlias alias in aliases)
+        foreach (SectionDescriptor section in definition.Sections.Where(section => section.FieldAliases.Count > 0))
         {
-            FieldNode node = model.GetField(alias);
-            Proposal? lastProposal = node.ProposalHistory.LastOrDefault();
+            Console.WriteLine($"Section: {section.SectionAlias.Value}");
+            Console.WriteLine($"  DisplayName: {section.DisplayName ?? "<none>"}");
 
-            Console.WriteLine(alias.Value);
-            Console.WriteLine($"  Status: {node.CurrentValue.Status}");
-
-            if (lastProposal is null)
+            foreach (FieldAlias alias in section.FieldAliases)
             {
-                Console.WriteLine("  No proposal generated.");
-                Console.WriteLine();
-                continue;
+                FieldNode node = model.GetField(alias);
+                Proposal? lastProposal = node.ProposalHistory.LastOrDefault();
+
+                Console.WriteLine($"  Field: {alias.Value}");
+                Console.WriteLine($"    Status: {node.CurrentValue.Status}");
+
+                if (lastProposal is null)
+                {
+                    Console.WriteLine("    No proposal generated.");
+                    Console.WriteLine();
+                    continue;
+                }
+
+                Console.WriteLine($"    Value: {lastProposal.ProposedValue}");
+                Console.WriteLine($"    Confidence: {lastProposal.Confidence}");
+                Console.WriteLine($"    Explanation: {lastProposal.Explanation}");
             }
 
-            Console.WriteLine($"  Value: {lastProposal.ProposedValue}");
-            Console.WriteLine($"  Confidence: {lastProposal.Confidence}");
-            Console.WriteLine($"  Explanation: {lastProposal.Explanation}");
             Console.WriteLine();
         }
     }

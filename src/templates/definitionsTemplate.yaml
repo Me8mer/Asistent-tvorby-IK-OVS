@@ -14,40 +14,66 @@ templates:
       query_hints: []
       notes: ""
     - alias: "IKOVS_PREFACE_BASIC-INFO"
-      label_cs: "Základní údaje Informační koncepce"
+      label_cs: "Základní údaje"
       parent: "IKOVS_PREFACE_IDENTIFICATION"
       query_hints:
-        - "základní údaje"
         - "kontakt"
-        - "IČO"
-        - "adresa sídla"
-        - "Ministerstvo pro místní rozvoj"
+        - "adresa"
+        - "kontakty"
       notes: "" 
     fields:
-    - alias: "IKOVS_PREFACE_BASIC-INFO_ORG-NAME"
+    - alias: "IKOVS_PREFACE_BASIC-INFO_ORG_NAME"
       parent: "IKOVS_PREFACE_BASIC-INFO"
       label_cs: "Název orgánu veřejné správy"
       fill:
-        deterministic: false
-        ai: false
-        chatbot: false
+        deterministic: true
+        ai: true
+        chatbot: true
         init: false
-      required: false           # optional; sets IsRequired in FieldDescriptor
+      required: true            # optional; sets IsRequired in FieldDescriptor
       value_type: "string"      # optional; helps value‑hint logic (e.g. "date", "number")
       depends_on: []            # list of field aliases this field depends on
       instructions: ""          # optional human instructions for the UI
       query_hints: []           # optional field‑level query hints
       notes: ""                 # optional free text
-    - alias: "IKOVS_PREFACE_BASIC-INFO_ORG-ICO"
+    - alias: "IKOVS_PREFACE_BASIC-INFO_ORG_ICO"
       parent: "IKOVS_PREFACE_BASIC-INFO"
       label_cs: "IČO"
       fill:
-        deterministic: false
+        deterministic: true
         ai: false
         chatbot: false
         init: false
-      required: false
-      value_type: "string"
+      required: true
+      value_type: "ico"
+      depends_on: []
+      instructions: ""
+      query_hints: [ič, "identifikační číslo"]
+      notes: ""
+    - alias: "IKOVS_PREFACE_BASIC-INFO_ORG_TYPE"
+      parent: "IKOVS_PREFACE_BASIC-INFO"
+      label_cs: "Typ organizace"
+      fill:
+        deterministic: true
+        ai: true
+        chatbot: false
+        init: false
+      required: true
+      value_type: "enum"
+      depends_on: []
+      instructions: ""
+      query_hints: []
+      notes: ""
+    - alias: "IKOVS_PREFACE_BASIC-INFO_ORG_ADDRESS"
+      parent: "IKOVS_PREFACE_BASIC-INFO"
+      label_cs: "Adresa sídla"
+      fill:
+        deterministic: true
+        ai: true
+        chatbot: false
+        init: false
+      required: true
+      value_type: "address"
       depends_on: []
       instructions: ""
       query_hints: []

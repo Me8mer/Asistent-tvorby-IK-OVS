@@ -16,17 +16,12 @@ namespace Assistant.AI.Providers
         private readonly string modelName;
         private readonly string apiKey;
 
-        public OpenAiChatLlmProvider(string modelName, string? apiKey = null)
+        public OpenAiChatLlmProvider(string modelName, string apiKey)
         {
-            this.modelName = !string.IsNullOrWhiteSpace(modelName)
-                ? modelName
-                : throw new ArgumentException("Model name must be provided.", nameof(modelName));
-
-            this.apiKey = !string.IsNullOrWhiteSpace(apiKey)
-                ? apiKey
-                : (Environment.GetEnvironmentVariable("OPENAI_API_KEY")
-                   ?? throw new InvalidOperationException("OPENAI_API_KEY environment variable is not set."));
+            this.modelName = modelName;
+            this.apiKey = apiKey;
         }
+        
 
         public async Task<LlmRawResponse> GenerateAsync(
             ModelRouting routing,

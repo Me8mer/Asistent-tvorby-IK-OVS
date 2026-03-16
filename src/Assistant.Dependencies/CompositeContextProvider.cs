@@ -160,10 +160,11 @@ namespace Assistant.Dependencies.Context
             {
                 SectionAlias sectionAlias = kvp.Key;
 
-                // Use the query builder to assemble search terms from the section
-                // path, field aliases and query hints.  The builder enforces
+                    // Use the query builder to assemble search terms from localized
+                    // section and field metadata, with alias-based fallback only when
+                    // necessary. The builder enforces
                 // deduplication and length limits
-                SectionQuery sectionQuery = sectionQueryBuilder.BuildSectionQuery(sectionAlias, sectionsByAlias);
+                    SectionQuery sectionQuery = sectionQueryBuilder.BuildSectionQuery(sectionAlias, internalModel);
                 string queryText = sectionQuery.QueryText;
 
                 // Skip sections with no meaningful search terms.  Structural or empty

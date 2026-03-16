@@ -131,7 +131,10 @@ namespace Assistant.Dependencies.Context.Web.Processing
                 }
 
                 if (LooksLikeJunkUrl(trimmedUrl))
+                {
+                    Console.WriteLine($"Filtered URL: {trimmedUrl}");
                     continue;
+                }
 
                 filteredPages.Add(page);
             }

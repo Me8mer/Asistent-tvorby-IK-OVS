@@ -41,6 +41,16 @@ namespace Assistant.Dependencies.Context.Web
             if (cachedChunkCorpus != null)
                 return cachedChunkCorpus;
 
+            // Chunk corpus is missing, but we may still have raw corpus cached.
+            // In that case, rebuild chunks locally and avoid re-crawling.
+            WebCorpus? cachedCorpus = await cacheStore.LoadCorpusAsync(officeKey).ConfigureAwait(false);
+            if (cachedCorpus != null)
+            {
+                WebChunkCorpus rebuiltChunkCorpus = chunkCorpusBuilder.Build(cachedCorpus);
+                await cacheStore.SaveChunkCorpusAsync(rebuiltChunkCorpus).ConfigureAwait(false);
+                return rebuiltChunkCorpus;
+            }
+
             CrawlResult crawlResult = await managedCrawler.RunAsync(officeIdentifier, cancellationToken).ConfigureAwait(false);
 
             // Ensure officeKey is used for storage, even if crawler returns a different identifier.

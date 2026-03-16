@@ -8,6 +8,7 @@ namespace Assistant.Core.Model
         public FillMode FillModes { get; }
         public bool IsRequired { get; }
         public string? DisplayName { get; }
+        public IReadOnlyList<string>? QueryHints { get; }
         public string? Instructions { get; }
         public string? ValueTypeHint { get; }
         public ContextRequirement? ContextRequirement { get; }
@@ -18,6 +19,7 @@ namespace Assistant.Core.Model
             FillMode fillModes,
             bool isRequired,
             string? displayName,
+            IReadOnlyList<string>? queryHints,
             string? instructions,
             string? valueTypeHint,
             ContextRequirement? contextRequirement)
@@ -26,6 +28,7 @@ namespace Assistant.Core.Model
             FillModes = fillModes;
             IsRequired = isRequired;
             DisplayName = displayName;
+            QueryHints = queryHints;
             Instructions = instructions;
             ValueTypeHint = valueTypeHint;
             ContextRequirement = contextRequirement;
