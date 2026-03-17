@@ -10,8 +10,10 @@ namespace Assistant.Dependencies.Context
     {
         public sealed class Options
         {
-            public int MaximumFieldTerms { get; init; } = 20;
-            public int MaximumTotalCharacters { get; init; } = 1200;
+            public int MaximumFieldTerms { get; init; } = 8;
+            public int MaximumHintTerms { get; init; } = 6;
+            public int MaximumAncestorTerms { get; init; } = 2;
+            public int MaximumTotalCharacters { get; init; } = 420;
 
             public Options()
             {
@@ -37,13 +39,12 @@ namespace Assistant.Dependencies.Context
             if (!sectionsByAlias.TryGetValue(sectionAlias, out SectionDescriptor? section))
                 throw new ArgumentException($"Section alias '{sectionAlias}' is not present in the provided model.", nameof(sectionAlias));
 
-            var terms = new List<string>(capacity: 64);
+            var terms = new List<string>(capacity: 32);
             var seenTerms = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-            AddSectionPathTerms(section, sectionsByAlias, terms, seenTerms);
-
-            AddHintTerms(section.QueryHints, terms, seenTerms);
-
+            AddPrimarySectionTerms(section, terms, seenTerms);
+            AddSectionHintTerms(section.QueryHints, terms, seenTerms);
+            AddNearestAncestorTerms(section, sectionsByAlias, terms, seenTerms);
             AddFieldTerms(section.FieldAliases, internalModel, terms, seenTerms);
 
             string queryText = BuildQueryTextWithLimit(terms, options.MaximumTotalCharacters);
@@ -54,24 +55,57 @@ namespace Assistant.Dependencies.Context
                 terms: terms);
         }
 
-        private void AddSectionPathTerms(
+        private void AddPrimarySectionTerms(
+            SectionDescriptor section,
+            List<string> terms,
+            HashSet<string> seenTerms)
+        {
+            string primarySectionTerm = GetDisplayOrDerivedName(section.DisplayName, section.SectionAlias.Value);
+            AddTerm(primarySectionTerm, terms, seenTerms);
+        }
+
+        private void AddSectionHintTerms(
+            IReadOnlyList<string>? queryHints,
+            List<string> terms,
+            HashSet<string> seenTerms)
+        {
+            if (queryHints == null || queryHints.Count == 0)
+                return;
+
+            int addedHints = 0;
+
+            foreach (string queryHint in queryHints)
+            {
+                if (addedHints >= options.MaximumHintTerms)
+                    break;
+
+                if (AddTerm(queryHint, terms, seenTerms))
+                    addedHints++;
+            }
+        }
+
+        private void AddNearestAncestorTerms(
             SectionDescriptor section,
             IReadOnlyDictionary<SectionAlias, SectionDescriptor> sectionsByAlias,
             List<string> terms,
             HashSet<string> seenTerms)
         {
             IReadOnlyList<SectionDescriptor> pathFromRoot = BuildPathFromRoot(section, sectionsByAlias);
+            if (pathFromRoot.Count <= 1)
+                return;
 
-            foreach (SectionDescriptor pathSection in pathFromRoot)
+            int ancestorTermsAdded = 0;
+
+            for (int sectionIndex = pathFromRoot.Count - 2; sectionIndex >= 0; sectionIndex--)
             {
-                string displayOrDerived = GetDisplayOrDerivedName(pathSection.DisplayName, pathSection.SectionAlias.Value);
-                AddTerm(displayOrDerived, terms, seenTerms);
+                if (ancestorTermsAdded >= options.MaximumAncestorTerms)
+                    break;
 
-                if (string.IsNullOrWhiteSpace(pathSection.DisplayName))
-                {
-                    string aliasDerived = DeriveTermsFromAlias(pathSection.SectionAlias.Value);
-                    AddTerm(aliasDerived, terms, seenTerms);
-                }
+                SectionDescriptor ancestorSection = pathFromRoot[sectionIndex];
+                string ancestorTerm = GetDisplayOrDerivedName(ancestorSection.DisplayName, ancestorSection.SectionAlias.Value);
+
+                if (AddTerm(ancestorTerm, terms, seenTerms))
+                    ancestorTermsAdded++;
             }
         }
 
@@ -82,22 +116,22 @@ namespace Assistant.Dependencies.Context
             var reversed = new List<SectionDescriptor>();
             var visitedAliases = new HashSet<SectionAlias>();
 
-            SectionDescriptor? current = leafSection;
+            SectionDescriptor? currentSection = leafSection;
 
-            while (current != null)
+            while (currentSection != null)
             {
-                if (!visitedAliases.Add(current.SectionAlias))
+                if (!visitedAliases.Add(currentSection.SectionAlias))
                     break;
 
-                reversed.Add(current);
+                reversed.Add(currentSection);
 
-                if (current.ParentSectionAlias == null)
+                if (currentSection.ParentSectionAlias == null)
                     break;
 
-                if (!sectionsByAlias.TryGetValue(current.ParentSectionAlias.Value, out SectionDescriptor? parent))
+                if (!sectionsByAlias.TryGetValue(currentSection.ParentSectionAlias.Value, out SectionDescriptor? parentSection))
                     break;
 
-                current = parent;
+                currentSection = parentSection;
             }
 
             reversed.Reverse();
@@ -141,25 +175,18 @@ namespace Assistant.Dependencies.Context
         {
             AddTerm(GetDisplayOrDerivedName(descriptor.DisplayName, descriptor.Alias.Value), terms, seenTerms);
 
-            AddHintTerms(descriptor.QueryHints, terms, seenTerms);
+            if (descriptor.QueryHints != null)
+            {
+                foreach (string queryHint in descriptor.QueryHints)
+                {
+                    if (AddTerm(queryHint, terms, seenTerms))
+                        break;
+                }
+            }
 
             if (string.IsNullOrWhiteSpace(descriptor.DisplayName))
             {
                 AddTerm(DeriveTermsFromAlias(descriptor.Alias.Value), terms, seenTerms);
-            }
-        }
-
-        private static void AddHintTerms(
-            IReadOnlyList<string>? queryHints,
-            List<string> terms,
-            HashSet<string> seenTerms)
-        {
-            if (queryHints == null || queryHints.Count == 0)
-                return;
-
-            foreach (string hint in queryHints)
-            {
-                AddTerm(hint, terms, seenTerms);
             }
         }
 
@@ -218,7 +245,7 @@ namespace Assistant.Dependencies.Context
 
         private static string BuildQueryTextWithLimit(IReadOnlyList<string> terms, int maximumCharacters)
         {
-            var builder = new StringBuilder(capacity: Math.Min(maximumCharacters, 2048));
+            var builder = new StringBuilder(capacity: Math.Min(maximumCharacters, 1024));
 
             foreach (string term in terms)
             {
