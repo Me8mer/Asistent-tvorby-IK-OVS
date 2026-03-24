@@ -26,7 +26,7 @@ namespace Assistant.Tools.WebContextSmokeTest
                 return 2;
             }
 
-            ServiceProvider serviceProvider = BuildServiceProvider(apifyToken);
+            ServiceProvider serviceProvider = BuildServiceProvider(apiKeys);
 
             try
             {

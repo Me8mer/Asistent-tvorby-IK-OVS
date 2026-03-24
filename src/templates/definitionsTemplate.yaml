@@ -2,7 +2,7 @@ version: 1    # YAML schema version
 
 templates:
   - key: "preface-basic-info.v01"
-    label: "IKOVS Preface – Basic Info"
+    label: "IKOVS Preface Basic Info"
 
     # =========================
     # SECTIONS
