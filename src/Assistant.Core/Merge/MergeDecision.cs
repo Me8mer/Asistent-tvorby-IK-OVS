@@ -1,5 +1,3 @@
-using Assistant.Core.Model;
-
 namespace Assistant.Core.Merge
 {
     public sealed class MergeDecision

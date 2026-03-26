@@ -2,6 +2,11 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Assistant.Core.Model;
+using Assistant.Core.Model.Aliases;
+using Assistant.Core.Model.Enums;
+using Assistant.Core.Model.Fields;
+using Assistant.Core.Model.Sections;
+using Assistant.Core.Model.Templates;
 
 namespace Assistant.Dependencies.TemplateDefinitions
 {

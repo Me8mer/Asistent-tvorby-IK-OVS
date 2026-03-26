@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Assistant.Core.Model;
+using Assistant.Core.Model.Fields;
 
 namespace Assistant.Parser.OpenXml
 {

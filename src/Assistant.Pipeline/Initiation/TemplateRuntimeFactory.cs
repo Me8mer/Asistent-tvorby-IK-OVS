@@ -1,6 +1,10 @@
 using System;
 using System.Collections.Generic;
 using Assistant.Core.Model;
+using Assistant.Core.Model.Aliases;
+using Assistant.Core.Model.Fields;
+using Assistant.Core.Model.InternalModel;
+using Assistant.Core.Model.Templates;
 using Assistant.Parser.OpenXml;
 
 namespace Assistant.Pipeline.Initiation

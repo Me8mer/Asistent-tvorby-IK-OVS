@@ -4,6 +4,8 @@ using System.Text.Json;
 using Assistant.AI.Abstractions;
 using Assistant.AI.Models;
 using Assistant.Core.Model;
+using Assistant.Core.Model.AIProposals;
+using Assistant.Core.Model.Enums;
 
 namespace Assistant.AI.Parsing
 {

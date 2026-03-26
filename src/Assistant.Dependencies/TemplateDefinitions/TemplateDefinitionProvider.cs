@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Assistant.Core.Model;
+using Assistant.Core.Model.Templates;
 
 namespace Assistant.Dependencies.TemplateDefinitions;
 

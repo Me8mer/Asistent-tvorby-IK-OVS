@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Assistant.AI.Abstractions;
 using Assistant.AI.Models;
 using Assistant.Core.Model;
+using Assistant.Core.Model.AIProposals;
 
 namespace Assistant.AI.Generators
 {

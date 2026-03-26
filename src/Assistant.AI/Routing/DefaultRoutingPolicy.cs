@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Assistant.AI.Abstractions;
 using Assistant.AI.Models;
 using Assistant.Core.Model;
+using Assistant.Core.Model.Aliases;
 
 namespace Assistant.AI.Routing
 {

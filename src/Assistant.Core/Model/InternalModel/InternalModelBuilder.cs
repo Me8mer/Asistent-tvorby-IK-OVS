@@ -1,0 +1,137 @@
+using System;
+using System.Collections.Generic;
+
+/// <summary>
+/// Builds InternalModel from:
+/// - aliases
+/// - descriptors
+/// - bindings
+/// - sections
+/// 
+/// Responsibilities:
+/// - create FieldNodes
+/// - assign section ownership
+/// - validate structure
+/// </summary>
+namespace Assistant.Core.Model.InternalModel
+{
+    public sealed class InternalModelBuilder
+    {
+        public InternalModel Build(
+            string templateVersion,
+            IEnumerable<FieldAlias> aliases,
+            IReadOnlyDictionary<FieldAlias, FieldBinding>? bindingsByAlias,
+            IReadOnlyDictionary<FieldAlias, FieldDescriptor>? descriptorsByAlias,
+            IEnumerable<SectionDescriptor>? sections)
+        {
+            if (string.IsNullOrWhiteSpace(templateVersion))
+            {
+                throw new ArgumentException("Template version must not be null, empty, or whitespace.", nameof(templateVersion));
+            }
+
+            if (aliases is null)
+            {
+                throw new ArgumentNullException(nameof(aliases));
+            }
+
+            var fieldsByAlias = BuildFields(aliases, bindingsByAlias, descriptorsByAlias);
+            var sectionsByAlias = BuildSections(sections);
+
+            ClearFieldSectionOwnership(fieldsByAlias);
+
+            AssignFieldOwnership(fieldsByAlias, sectionsByAlias);
+
+            SectionGraphIndex sectionGraphIndex = SectionGraphIndex.BuildAndValidate(sectionsByAlias);
+
+            return new InternalModel(
+                templateVersion,
+                fieldsByAlias,
+                sectionsByAlias,
+                sectionGraphIndex);
+        }
+
+        private static Dictionary<FieldAlias, FieldNode> BuildFields(
+            IEnumerable<FieldAlias> aliases,
+            IReadOnlyDictionary<FieldAlias, FieldBinding>? bindingsByAlias,
+            IReadOnlyDictionary<FieldAlias, FieldDescriptor>? descriptorsByAlias)
+        {
+            var fieldsByAlias = new Dictionary<FieldAlias, FieldNode>();
+
+            foreach (FieldAlias alias in aliases)
+            {
+                if (fieldsByAlias.ContainsKey(alias))
+                {
+                    throw new InvalidOperationException($"Duplicate alias detected in internal model: {alias}.");
+                }
+
+                FieldBinding? binding = null;
+                bindingsByAlias?.TryGetValue(alias, out binding);
+
+                FieldDescriptor? descriptor = null;
+                descriptorsByAlias?.TryGetValue(alias, out descriptor);
+
+                fieldsByAlias.Add(alias, new FieldNode(alias, binding, descriptor));
+            }
+
+            return fieldsByAlias;
+        }
+
+        private static Dictionary<SectionAlias, SectionDescriptor> BuildSections(IEnumerable<SectionDescriptor>? sections)
+        {
+            var sectionsByAlias = new Dictionary<SectionAlias, SectionDescriptor>();
+
+            if (sections is null)
+            {
+                return sectionsByAlias;
+            }
+
+            foreach (SectionDescriptor sectionDescriptor in sections)
+            {
+                if (sectionsByAlias.ContainsKey(sectionDescriptor.SectionAlias))
+                {
+                    throw new InvalidOperationException($"Duplicate section alias '{sectionDescriptor.SectionAlias}'.");
+                }
+
+                sectionsByAlias.Add(sectionDescriptor.SectionAlias, sectionDescriptor);
+            }
+
+            return sectionsByAlias;
+        }
+
+        private static void ClearFieldSectionOwnership(Dictionary<FieldAlias, FieldNode> fieldsByAlias)
+        {
+            foreach (FieldNode fieldNode in fieldsByAlias.Values)
+            {
+                fieldNode.ParentSectionAlias = null;
+            }
+        }
+
+        private static void AssignFieldOwnership(
+            Dictionary<FieldAlias, FieldNode> fieldsByAlias,
+            Dictionary<SectionAlias, SectionDescriptor> sectionsByAlias)
+        {
+            var owningSectionByFieldAlias = new Dictionary<FieldAlias, SectionAlias>();
+
+            foreach (SectionDescriptor sectionDescriptor in sectionsByAlias.Values)
+            {
+                foreach (FieldAlias fieldAlias in sectionDescriptor.FieldAliases)
+                {
+                    if (!fieldsByAlias.TryGetValue(fieldAlias, out FieldNode? fieldNode))
+                    {
+                        throw new InvalidOperationException(
+                            $"Section '{sectionDescriptor.SectionAlias}' references unknown field alias '{fieldAlias}'.");
+                    }
+
+                    if (owningSectionByFieldAlias.TryGetValue(fieldAlias, out SectionAlias existingOwner))
+                    {
+                        throw new InvalidOperationException(
+                            $"Field alias '{fieldAlias}' is owned by multiple sections: '{existingOwner}' and '{sectionDescriptor.SectionAlias}'.");
+                    }
+
+                    owningSectionByFieldAlias.Add(fieldAlias, sectionDescriptor.SectionAlias);
+                    fieldNode.ParentSectionAlias = sectionDescriptor.SectionAlias;
+                }
+            }
+        }
+    }
+}

@@ -2,6 +2,9 @@ using System;
 using System.Collections.Generic;
 using Assistant.AI.Models;
 using Assistant.Core.Model;
+using Assistant.Core.Model.AIProposals;
+using Assistant.Core.Model.Aliases;
+using Assistant.Core.Model.Fields;
 
 namespace Assistant.AI.Models
 {

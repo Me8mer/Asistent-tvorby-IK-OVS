@@ -4,6 +4,9 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Assistant.Core.Model;
+using Assistant.Core.Model.Aliases;
+using Assistant.Core.Model.Enums;
+using Assistant.Core.Model.Fields;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 

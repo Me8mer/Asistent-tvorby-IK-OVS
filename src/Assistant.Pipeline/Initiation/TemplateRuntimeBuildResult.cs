@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Assistant.Core.Model;
+using Assistant.Core.Model.InternalModel;
 using Assistant.Parser.OpenXml;
 
 namespace Assistant.Pipeline.Initiation

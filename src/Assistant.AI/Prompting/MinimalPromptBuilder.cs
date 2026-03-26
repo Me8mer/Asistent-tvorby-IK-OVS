@@ -3,6 +3,8 @@ using System.Text;
 using Assistant.AI.Abstractions;
 using Assistant.AI.Models;
 using Assistant.Core.Model;
+using Assistant.Core.Model.Context;
+using Assistant.Core.Model.Fields;
 
 namespace Assistant.AI.Prompting
 {

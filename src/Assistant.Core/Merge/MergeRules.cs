@@ -1,5 +1,4 @@
 using System;
-using Assistant.Core.Model;
 
 namespace Assistant.Core.Merge
 {
