@@ -87,12 +87,14 @@ namespace Assistant.Core.Model.InternalModel
 
             foreach (SectionDescriptor sectionDescriptor in sections)
             {
-                if (sectionsByAlias.ContainsKey(sectionDescriptor.SectionAlias))
+                SectionDescriptor normalizedDescriptor = SectionDescriptorNormalizer.Normalize(sectionDescriptor);
+
+                if (sectionsByAlias.ContainsKey(normalizedDescriptor.SectionAlias))
                 {
-                    throw new InvalidOperationException($"Duplicate section alias '{sectionDescriptor.SectionAlias}'.");
+                    throw new InvalidOperationException($"Duplicate section alias '{normalizedDescriptor.SectionAlias}'.");
                 }
 
-                sectionsByAlias.Add(sectionDescriptor.SectionAlias, sectionDescriptor);
+                sectionsByAlias.Add(normalizedDescriptor.SectionAlias, normalizedDescriptor);
             }
 
             return sectionsByAlias;

@@ -92,7 +92,7 @@ namespace Assistant.Pipeline.Initiation
             }
 
             WebContextPack contextPack = await contextProvider
-                .GetOrBuildContextPackAsync(model, officeIdentifier, cancellationToken)
+                .GetOrBuildSectionContextPackAsync(model, officeIdentifier, owningSectionAlias, cancellationToken)
                 .ConfigureAwait(false);
 
             (string webText, IReadOnlyList<string> references) =

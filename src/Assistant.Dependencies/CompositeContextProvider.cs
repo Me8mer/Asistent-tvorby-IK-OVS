@@ -112,14 +112,9 @@ namespace Assistant.Dependencies.Context
             GetOrBuildContextPackAsync(internalModel, officeIdentifier, cancellationToken);
 
         /// <summary>
-        /// Retrieves or builds a consolidated web context pack for the specified
-        /// office.  The internal model defines the set of sections for which
-        /// context is required.  If a cached pack exists on disk for the given
-        /// office the cached result is returned.  Otherwise the method crawls
-        /// the office website, constructs search queries via
-        /// <see cref="SectionQueryBuilder"/> and retrieves relevant chunks via
-        /// <see cref="WebSectionPackRetriever"/>.  All section retrievals are
-        /// performed concurrently to improve throughput.
+        /// Retrieves or builds web context for a specific section in the model.
+        /// This is the intended lazy path and avoids building all sections when
+        /// only one section is needed.
         /// </summary>
         /// <param name="internalModel">The parsed document model describing the
         /// section hierarchy and field aliases.</param>
@@ -127,17 +122,21 @@ namespace Assistant.Dependencies.Context
         /// the office.  This may include protocol, which will be normalized.</param>
         /// <param name="cancellationToken">Propagation token used to cancel
         /// crawling operations.</param>
+        /// <param name="sectionAlias">The section alias for which context is requested.</param>
         /// <returns>A task that resolves to a <see cref="WebContextPack"/> containing
-        /// snippets for each section in the model.</returns>
-        public async Task<WebContextPack> GetOrBuildContextPackAsync(
+        /// snippets for the requested section only.</returns>
+        public async Task<WebContextPack> GetOrBuildSectionContextPackAsync(
             InternalModel internalModel,
             string officeIdentifier,
+            SectionAlias sectionAlias,
             CancellationToken cancellationToken)
         {
             if (internalModel is null)
                 throw new ArgumentNullException(nameof(internalModel));
             if (string.IsNullOrWhiteSpace(officeIdentifier))
                 throw new ArgumentException("Office identifier must not be null or whitespace.", nameof(officeIdentifier));
+            if (!internalModel.SectionsByAlias.ContainsKey(sectionAlias))
+                throw new ArgumentException($"Unknown section alias '{sectionAlias.Value}'.", nameof(sectionAlias));
 
             // Ensure a chunk corpus exists for the office.  This may trigger a crawl
             // and chunking operation.  The returned corpus includes the normalized
@@ -148,56 +147,34 @@ namespace Assistant.Dependencies.Context
 
             string officeKey = chunkCorpus.OfficeKey;
 
-            // Try to load an existing context pack from the cache.  If present return
-            // immediately to avoid redundant work.
-            WebContextPack? cachedPack = await cacheStore.LoadContextPackAsync(officeKey).ConfigureAwait(false);
-            if (cachedPack != null)
-                return cachedPack;
+            SectionQuery sectionQuery = sectionQueryBuilder.BuildSectionQuery(sectionAlias, internalModel);
+            string queryText = sectionQuery.QueryText;
 
-            IReadOnlyDictionary<SectionAlias, SectionDescriptor> sectionsByAlias = internalModel.SectionsByAlias;
-
-            // Build queries for each section.  Collect tasks for concurrent retrieval.
-            var retrievalTasks = new List<Task<(string SectionKey, WebSectionPack SectionPack)>>();
-
-            foreach (KeyValuePair<SectionAlias, SectionDescriptor> kvp in sectionsByAlias)
+            // Structural or empty sections produce no query and therefore no snippets.
+            if (string.IsNullOrWhiteSpace(queryText))
             {
-                SectionAlias sectionAlias = kvp.Key;
-
-                    // Use the query builder to assemble search terms from localized
-                    // section and field metadata, with alias-based fallback only when
-                    // necessary. The builder enforces
-                // deduplication and length limits
-                    SectionQuery sectionQuery = sectionQueryBuilder.BuildSectionQuery(sectionAlias, internalModel);
-                string queryText = sectionQuery.QueryText;
-
-                // Skip sections with no meaningful search terms.  Structural or empty
-                // sections produce an empty query.
-                if (string.IsNullOrWhiteSpace(queryText))
-                    continue;
-
-                string sectionKey = sectionAlias.Value;
-
-                retrievalTasks.Add(FetchSectionPackAsync(officeKey, sectionKey, queryText));
+                return new WebContextPack(
+                    officeKey: officeKey,
+                    builtAtUtc: DateTime.UtcNow,
+                    snippets: Array.Empty<WebContextSnippet>());
             }
 
-            // Execute all section retrievals in parallel.  Each task returns the
-            // section key along with the retrieved pack.
-            (string SectionKey, WebSectionPack SectionPack)[] results = await Task.WhenAll(retrievalTasks).ConfigureAwait(false);
+            string sectionKey = sectionAlias.Value;
+            WebSectionPack sectionPack = await sectionPackRetriever
+                .GetOrBuildSectionPackAsync(officeKey, sectionKey, queryText)
+                .ConfigureAwait(false);
 
-            var snippets = new List<WebContextSnippet>();
+            var snippets = new List<WebContextSnippet>(sectionPack.Items.Count);
 
-            foreach ((string sectionKey, WebSectionPack sectionPack) in results)
+            foreach (WebSectionPackItem item in sectionPack.Items)
             {
-                foreach (WebSectionPackItem item in sectionPack.Items)
-                {
-                    string referenceId = BuildReferenceId(officeKey, sectionKey, item.ChunkId);
-                    var snippet = new WebContextSnippet(
-                        intent: sectionKey,
-                        providerKind: "WEB",
-                        referenceId: referenceId,
-                        text: item.Text);
-                    snippets.Add(snippet);
-                }
+                string referenceId = BuildReferenceId(officeKey, sectionKey, item.ChunkId);
+                var snippet = new WebContextSnippet(
+                    intent: sectionKey,
+                    providerKind: "WEB",
+                    referenceId: referenceId,
+                    text: item.Text);
+                snippets.Add(snippet);
             }
 
             var contextPack = new WebContextPack(
@@ -205,27 +182,43 @@ namespace Assistant.Dependencies.Context
                 builtAtUtc: DateTime.UtcNow,
                 snippets: snippets);
 
-            // Persist the assembled pack to the cache for future use.
-            await cacheStore.SaveContextPackAsync(contextPack).ConfigureAwait(false);
-
             return contextPack;
         }
 
         /// <summary>
-        /// Helper method used to fetch a section pack and return it along with its
-        /// section key.  This allows the retrieval calls to be composed
-        /// concurrently via <see cref="Task.WhenAll"/>.
+        /// Compatibility API that assembles context for all sections by lazily
+        /// delegating to <see cref="GetOrBuildSectionContextPackAsync"/> per section.
         /// </summary>
-        /// <param name="officeKey">The normalized key for the office.</param>
-        /// <param name="sectionKey">The key of the section (alias value).</param>
-        /// <param name="queryText">The query text to pass to the retriever.</param>
-        private async Task<(string SectionKey, WebSectionPack SectionPack)> FetchSectionPackAsync(
-            string officeKey,
-            string sectionKey,
-            string queryText)
+        public async Task<WebContextPack> GetOrBuildContextPackAsync(
+            InternalModel internalModel,
+            string officeIdentifier,
+            CancellationToken cancellationToken)
         {
-            WebSectionPack pack = await sectionPackRetriever.GetOrBuildSectionPackAsync(officeKey, sectionKey, queryText).ConfigureAwait(false);
-            return (sectionKey, pack);
+            if (internalModel is null)
+                throw new ArgumentNullException(nameof(internalModel));
+            if (string.IsNullOrWhiteSpace(officeIdentifier))
+                throw new ArgumentException("Office identifier must not be null or whitespace.", nameof(officeIdentifier));
+
+            var snippets = new List<WebContextSnippet>();
+            string officeKey = string.Empty;
+
+            foreach (SectionAlias sectionAlias in internalModel.SectionsByAlias.Keys)
+            {
+                WebContextPack sectionPack = await GetOrBuildSectionContextPackAsync(
+                        internalModel,
+                        officeIdentifier,
+                        sectionAlias,
+                        cancellationToken)
+                    .ConfigureAwait(false);
+
+                officeKey = sectionPack.OfficeKey;
+                snippets.AddRange(sectionPack.Snippets);
+            }
+
+            return new WebContextPack(
+                officeKey: officeKey,
+                builtAtUtc: DateTime.UtcNow,
+                snippets: snippets);
         }
 
         /// <summary>
