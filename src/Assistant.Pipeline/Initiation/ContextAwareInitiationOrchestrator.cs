@@ -45,9 +45,35 @@ namespace Assistant.Pipeline.Initiation
                 throw new ArgumentNullException(nameof(internalModelRuntime));
             }
 
+            // If running in openai-web mode skip external web context entirely. This
+            // allows the underlying model to perform its own web search via
+            // OpenAI's Responses API. We detect the mode by checking the
+            // ASSISTANT_CONTEXT_MODE environment variable. When set to
+            // "openai-web" we do not call the CompositeContextProvider and
+            // instead call the minimal GenerateWithoutWebContext path.
+            bool useOpenAiWebSearch = string.Equals(
+                Environment.GetEnvironmentVariable("ASSISTANT_CONTEXT_MODE"),
+                "openai-web",
+                StringComparison.OrdinalIgnoreCase);
+
             InternalModel model = internalModelRuntime.Model;
 
             FieldNode fieldNode = model.GetField(alias);
+
+            // If configured to use OpenAI web search, avoid retrieving any external
+            // web context. Use the provided documentContextText directly.
+            if (useOpenAiWebSearch)
+            {
+                string augmentedContext = BuildOfficeContext(officeIdentifier, documentContextText);
+
+                return await GenerateWithoutWebContext(
+                        internalModelRuntime,
+                        fieldNode,
+                        alias,
+                        documentContextText,
+                        cancellationToken)
+                    .ConfigureAwait(false);
+            }
 
             // If no owning section -> no web context
             if (!model.TryGetOwningSectionAlias(alias, out SectionAlias owningSectionAlias))
@@ -108,9 +134,38 @@ namespace Assistant.Pipeline.Initiation
                 return;
             }
 
+            // Determine if openai-web mode is enabled. When true, skip web context
+            // retrieval entirely and use the provided sectionContextText for each
+            // field.
+            bool useOpenAiWebSearch = string.Equals(
+                Environment.GetEnvironmentVariable("ASSISTANT_CONTEXT_MODE"),
+                "openai-web",
+                StringComparison.OrdinalIgnoreCase);
+
             InternalModel model = internalModelRuntime.Model;
 
             FieldAlias firstAlias = sectionFieldAliases[0];
+
+            if (useOpenAiWebSearch)
+            {
+                // In openai-web mode simply call GenerateWithoutWebContext for each
+                // field in the section using the provided sectionContextText. This
+                // avoids any external crawling or retrieval.
+                foreach (FieldAlias alias in sectionFieldAliases)
+                {
+                    string augmentedContext = BuildOfficeContext(officeIdentifier, sectionContextText);
+                    
+                    FieldNode fieldNode = model.GetField(alias);
+                    await GenerateWithoutWebContext(
+                            internalModelRuntime,
+                            fieldNode,
+                            alias,
+                            sectionContextText,
+                            cancellationToken)
+                        .ConfigureAwait(false);
+                }
+                return;
+            }
 
             if (!model.TryGetOwningSectionAlias(firstAlias, out SectionAlias sectionAlias))
             {
@@ -137,7 +192,7 @@ namespace Assistant.Pipeline.Initiation
             (string webText, IReadOnlyList<string> references) =
                 contextPack.GetContextText(sectionAlias.Value);
 
-            string combinedContext =  webText; // quick solution remove sectionContextText later
+            string combinedContext = webText;
             foreach (FieldAlias alias in sectionFieldAliases)
             {
                 FieldNode fieldNode = model.GetField(alias);
@@ -196,6 +251,27 @@ namespace Assistant.Pipeline.Initiation
             }
 
             return webContext ?? string.Empty;
+        }
+        
+        private static string BuildOfficeContext(string officeIdentifier, string? existingContext)
+        {
+            // HARD CODED FOR NOW (your example)
+            const string officeName = "Ministerstvo pro místní rozvoj České republiky";
+            const string officeIcoHint = "IČO can be found on official website";
+
+            string forcedContext =
+                $"You are filling data for the following public office:\n" +
+                $"Name: {officeName}\n" +
+                $"Website: {officeIdentifier}\n\n" +
+                $"You MUST use web search to find missing official data such as IČO, address, contacts.\n" +
+                $"Do NOT leave fields empty if the information can be found online.\n";
+
+            if (!string.IsNullOrWhiteSpace(existingContext))
+            {
+                return forcedContext + "\n" + existingContext;
+            }
+
+            return forcedContext;
         }
     }
 }
