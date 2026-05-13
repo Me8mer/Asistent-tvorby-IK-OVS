@@ -4,6 +4,7 @@
 
 | alias | type | mapped_reqs | depends_on | notes |
 |------|------|-------------|------------|-------|
+| IKOVS_PREFACE | section |  |  | |
 
 ---
 
@@ -11,12 +12,10 @@
 
 | alias | type | mapped_reqs | depends_on | notes |
 |------|------|-------------|------------|-------|
-| IKOVS_PREFACE_BASIC-INFO:group | group |  |  | Sekce 2.1 – Základní údaje Informační koncepce |
-| IKOVS_PREFACE_BASIC-INFO_ORG-NAME:field | field |  |  | Název orgánu veřejné správy |
-| IKOVS_PREFACE_BASIC-INFO_ORG-ICO:field | field |  |  | IČO |
-| IKOVS_PREFACE_BASIC-INFO_ORG-ADDRESS:field | field |  |  | Adresa sídla |
-| IKOVS_PREFACE_BASIC-INFO_IK-VERSION:field | field |  |  | Verze IK |
-| IKOVS_PREFACE_BASIC-INFO_VERSION-AUTHOR-UNIT:field | field |  |  | Organizační útvar autora |
-| IKOVS_PREFACE_BASIC-INFO_VERSION-APPROVER-UNIT:field | field |  |  | Organizační útvar schvalovatele |
+| IKOVS_PREFACE_BASIC-INFO | section |  |  | Sekce – Základní údaje |
+| IKOVS_PREFACE_BASIC-INFO_ORG_NAME | field |  |  | Název orgánu veřejné správy |
+| IKOVS_PREFACE_BASIC-INFO_ORG_ICO | field |  |  | IČO |
+| IKOVS_PREFACE_BASIC-INFO_ORG_TYPE | field |  |  | Typ organizace |
+| IKOVS_PREFACE_BASIC-INFO_ORG_ADDRESS | field |  |  | Adresa sídla |
 
 ---

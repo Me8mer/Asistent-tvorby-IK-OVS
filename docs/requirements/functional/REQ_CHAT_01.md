@@ -1,6 +1,6 @@
 # REQ_CHAT_01
 
-**Název:** Chatbot pro vyplnění předem určených tabulek a textových sekcí pouze po konverzaci s užívatelem
+**Název:** Chatbot pro vyplnění předem určených tabulek a textových sekcí pouze po konverzaci s uživatelem
 **Typ:** funkční / interaktivní  
 **Stav:** koncept  
 **Jistota:** nízka  

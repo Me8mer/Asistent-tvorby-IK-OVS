@@ -23,7 +23,7 @@
 Asistent automaticky doplní hodnoty všech polí označených `deterministic_fill`.  
 Hodnota se uloží jako `deterministic`, pokud je jednoznačná a ověřená.  
 Nejasná nebo chybějící data se označí `needs_validation`.  
-Nepřepisují se žádné hodnoty se stavem `confirmed`, `ai_proposal` nebo `user_input`.  
+Při automatickém doplňování se nepřepisují žádné hodnoty se stavem `confirmed` nebo již existující `deterministic` hodnoty (pokud nejsou označeny k revalidaci).  
 
 **Výstup:** aktualizovaný interní model s příznaky `deterministic` / `needs_validation` a auditní log zdrojů.  
 

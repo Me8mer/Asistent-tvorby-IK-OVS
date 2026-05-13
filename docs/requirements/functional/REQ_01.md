@@ -15,9 +15,9 @@ Tato část dokumentu je čistě faktická a nevyžaduje AI-generované texty. C
 
 ## Předpoklady
 * K dispozici je vstupní identifikátor úřadu (např. IČO nebo jiný unikátní identifikátor).
-- Asistent má přístup k zdrojúm **RPP**, **WEB_OFFICE**, ***ARCHI_PORTAL**
-- Propojení s registry probíhá prostřednictvím dostupných veřejných API, otevřených dat nebo data setů.<!-- Nejistota. Zjisti...-->
-- Pole na vyplnení jsou specificky označená pro doplnění
+- Asistent má přístup ke zdrojům **RPP**, **WEB_OFFICE**, **ARCHI_PORTAL**
+- Propojení s registry probíhá prostřednictvím dostupných veřejných API, otevřených dat nebo datasetů.
+- Pole k vyplnění jsou specificky označená pro doplnění
 
 ## Následný stav
 Po splnění požadavku se asistent pokusí:
@@ -34,13 +34,13 @@ Po splnění požadavku se asistent pokusí:
 - Každý údaj obsahuje viditelný záznam o zdroji a datu načtení.
 - Export do šablony Word/JSON zachová trasovatelnost zdrojů.
 
-## Vstupy <!-- Find out -->
+## Vstupy
 - IČO úřadu (vstupní identifikátor)
 - Veřejné zdroje
 - Verzovaná DOCX šablona s SDT tagy
 
 ## Výstupy
-- aAktualizovaný interní stav 
+- Aktualizovaný interní stav 
 - Strukturovaný JSON/YAML obsahující vyplněné hodnoty a jejich zdroje
 - Auditní log s konfliktními nebo nejistými poli
 

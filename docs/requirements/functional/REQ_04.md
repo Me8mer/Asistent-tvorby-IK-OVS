@@ -40,7 +40,7 @@ Po provedení budou k dispozici:
 - Alias cílové sekce (např. `IKOVS_PREFACE_MANDATE`)  
 - Zdrojové dokumenty / aliasy ze `sources.md`   
 - Stylová šablona / příklady IK pro referenci
-- Vstupní identifikátor úradu
+- Vstupní identifikátor úřadu
 
 ## Výstupy
 - Návrh textu v češtině označený jako `AI návrh` s metadaty (sources, confidence, generated_at)  

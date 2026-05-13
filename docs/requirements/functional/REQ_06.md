@@ -23,7 +23,7 @@ a je doplněn odkazem na příslušný zdroj požadavku.
 ## Odůvodnění
 IK OVS musí splňovat přesně stanovené legislativní a metodické požadavky.  
 Manuální kontrola je časově náročná a náchylná k chybám.  
-Automatizovaná validace pomúže pri procesu ověření správnosti,  
+Automatizovaná validace pomůže při procesu ověření správnosti,  
 umožní rychlou zpětnou vazbu a označí části, které je třeba upravit nebo doplnit.  
 Hybridní přístup (deterministická + AI validace) umožní spojit přesnost formálních pravidel s kontextovým hodnocením obsahu.
 
@@ -58,7 +58,7 @@ Po dokončení validace bude k dispozici:
 - Kompletně vyplněné tabulky a textové sekce s metadaty  
 - Definice validačních pravidel a kontrolních šablon  
 - Parametry validace (úroveň podrobnosti, jazyk, verze pravidel)
-- Vstupní identifikátor úradu
+- Vstupní identifikátor úřadu
 - Veřejné zdroje 
 
 ## Výstupy

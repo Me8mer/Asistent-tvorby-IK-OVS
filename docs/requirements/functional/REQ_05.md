@@ -42,7 +42,7 @@ Po provedení bude k dispozici:
 - Doplňující kontext z `REQ_01`, `REQ_02`, `REQ_03` a `REQ_04`  
 - Parametry generování (maximální délka, požadovaný level detailu)
 - Stylová šablona / příklady IK pro referenci
-- Vstupní identifikátor úradu
+- Vstupní identifikátor úřadu
 - Veřejné zdroje 
 
 ## Výstupy
